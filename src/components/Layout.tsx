@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Activity, History, Dumbbell } from 'lucide-react';
+import { Activity, History, Dumbbell, BarChart2, ClipboardList } from 'lucide-react';
 import clsx from 'clsx';
 
 export function Layout() {
@@ -22,7 +22,7 @@ export function Layout() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full max-w-md bg-[var(--color-bg-card)] border-t border-[var(--color-border-subtle)] z-20 pb-safe">
-        <div className="flex items-center justify-around h-16 px-4">
+        <div className="flex items-center justify-around h-16 px-2">
           <Link
             to="/"
             className={clsx(
@@ -31,18 +31,40 @@ export function Layout() {
             )}
           >
             <History className="w-5 h-5" />
-            <span className="text-xs font-medium">History</span>
+            <span className="text-[10px] font-medium">History</span>
+          </Link>
+          <div className="w-px h-8 bg-[var(--color-border-subtle)] opacity-50"></div>
+          <Link
+            to="/stats"
+            className={clsx(
+              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+              location.pathname === '/stats' ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
+            )}
+          >
+            <BarChart2 className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Stats</span>
+          </Link>
+          <div className="w-px h-8 bg-[var(--color-border-subtle)] opacity-50"></div>
+          <Link
+            to="/routines"
+            className={clsx(
+              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+              location.pathname === '/routines' ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
+            )}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Routines</span>
           </Link>
           <div className="w-px h-8 bg-[var(--color-border-subtle)] opacity-50"></div>
           <Link
             to="/workout"
             className={clsx(
               "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-              location.pathname === '/workout' ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
+              location.pathname.startsWith('/workout') ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
             )}
           >
             <Activity className="w-5 h-5" />
-            <span className="text-xs font-medium">Log Workout</span>
+            <span className="text-[10px] font-medium">Log</span>
           </Link>
         </div>
       </nav>

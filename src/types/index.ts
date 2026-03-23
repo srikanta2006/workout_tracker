@@ -19,3 +19,10 @@ export interface WorkoutSession {
   muscleGroup: MuscleGroup;
   exercises: Exercise[];
 }
+
+export interface Routine {
+  id: string;
+  name: string;
+  muscleGroup: MuscleGroup;
+  exercises: Omit<Exercise, 'sets'>[]; // Routines just save the exercises, maybe default sets
+}

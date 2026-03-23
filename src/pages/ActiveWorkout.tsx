@@ -1,31 +1,49 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import type { MuscleGroup, WorkoutSession, Exercise } from '../types';
-import { Plus, Trash2, Dumbbell, Save } from 'lucide-react';
+import { RestTimer } from '../components/RestTimer';
+import { COMMON_EXERCISES } from '../data/exercises';
+import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
+import { Plus, Trash2, Dumbbell, Save, ClipboardList } from 'lucide-react';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
 
 export function ActiveWorkout() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { workouts, addWorkout, updateWorkout } = useWorkoutState();
+  const [searchParams] = useSearchParams();
+  const routineId = searchParams.get('routineId');
+  const { workouts, routines, addWorkout, updateWorkout, addRoutine } = useWorkoutState();
   
   const existingWorkout = id ? workouts.find(w => w.id === id) : null;
+  const existingRoutine = routineId ? routines.find(r => r.id === routineId) : null;
 
   const [date, setDate] = useState(() => existingWorkout?.date || new Date().toISOString().split('T')[0]);
-  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>(() => existingWorkout?.muscleGroup || 'Chest');
-  const [exercises, setExercises] = useState<Exercise[]>(() => existingWorkout?.exercises || [{ 
-    id: crypto.randomUUID(), 
-    name: '', 
-    sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] 
-  }]);
+  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>(() => existingWorkout?.muscleGroup || existingRoutine?.muscleGroup || 'Chest');
+  
+  const initialExercises = () => {
+    if (existingWorkout) return existingWorkout.exercises;
+    if (existingRoutine) {
+      return existingRoutine.exercises.map(ex => ({
+        ...ex,
+        id: crypto.randomUUID(),
+        sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] as WorkoutSet[]
+      }));
+    }
+    return [{ 
+      id: crypto.randomUUID(), 
+      name: '', 
+      sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] as WorkoutSet[]
+    }];
+  };
+
+  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
 
   const handleAddExercise = () => {
     setExercises([...exercises, { 
       id: crypto.randomUUID(), 
       name: '', 
-      sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] 
+      sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] as WorkoutSet[]
     }]);
   };
 
@@ -42,7 +60,7 @@ export function ActiveWorkout() {
       if (ex.id === exerciseId) {
         return {
           ...ex,
-          sets: [...ex.sets, { id: crypto.randomUUID(), setNumber: ex.sets.length + 1, reps: '', weight: '' }]
+          sets: [...ex.sets, { id: crypto.randomUUID(), setNumber: ex.sets.length + 1, reps: '', weight: '' } as WorkoutSet]
         };
       }
       return ex;
@@ -98,12 +116,37 @@ export function ActiveWorkout() {
     navigate('/');
   };
 
+  const handleSaveAsRoutine = () => {
+    if (exercises.length === 0 || exercises.some(ex => !ex.name.trim())) {
+      alert("Please ensure all exercises have a name and there's at least one exercise.");
+      return;
+    }
+
+    const name = window.prompt("Enter a name for this routine:", `${muscleGroup} Workout`);
+    if (!name) return;
+
+    const newRoutine: Routine = {
+      id: crypto.randomUUID(),
+      name,
+      muscleGroup,
+      exercises: exercises.map(ex => ({ id: ex.id, name: ex.name })) // Strips out actual sets, preserving only the exercises
+    };
+
+    addRoutine(newRoutine);
+    alert('Routine saved!');
+  };
+
   return (
     <div className="w-full h-full flex flex-col pb-8">
+      {/* Exercise Datalist for Autocomplete */}
+      <datalist id="exercise-library">
+        {COMMON_EXERCISES.map(ex => <option key={ex} value={ex} />)}
+      </datalist>
+
       <div className="mb-6 px-1 border-b border-[var(--color-border-subtle)] pb-4">
         <h2 className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
-          {existingWorkout ? 'Edit Workout' : 'Log Workout'}
+          {existingWorkout ? 'Edit Workout' : (existingRoutine ? `Routine: ${existingRoutine.name}` : 'Log Workout')}
         </h2>
         
         <div className="grid grid-cols-2 gap-4">
@@ -131,6 +174,8 @@ export function ActiveWorkout() {
         </div>
       </div>
 
+      <RestTimer />
+
       <div className="flex-1 space-y-6">
         {exercises.map((exercise, idx) => (
           <div key={exercise.id} className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-sm relative pt-10">
@@ -148,7 +193,8 @@ export function ActiveWorkout() {
 
             <input 
               type="text"
-              placeholder="E.g., Bench Press"
+              list="exercise-library"
+              placeholder="Search or type exercise..."
               value={exercise.name}
               onChange={(e) => handleUpdateExerciseName(exercise.id, e.target.value)}
               className="w-full bg-transparent border-b border-[var(--color-border-subtle)] pb-2 mb-4 text-lg font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-brand-500)] transition-colors placeholder:font-normal placeholder:opacity-50"
@@ -217,12 +263,18 @@ export function ActiveWorkout() {
         </button>
       </div>
 
-      <div className="mt-8 pt-4 border-t border-[var(--color-border-subtle)]">
+      <div className="mt-8 pt-4 border-t border-[var(--color-border-subtle)] space-y-3">
         <button 
           onClick={handleSaveWorkout}
           className="w-full bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
         >
           <Save className="w-5 h-5" /> {existingWorkout ? 'Save Changes' : 'Save Workout'}
+        </button>
+        <button 
+          onClick={handleSaveAsRoutine}
+          className="w-full bg-[var(--color-bg-card)] border border-[var(--color-brand-500)] text-[var(--color-brand-600)] py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-[var(--color-brand-500)]/5 transition-all active:scale-[0.98]"
+        >
+          <ClipboardList className="w-5 h-5" /> Save as Template
         </button>
       </div>
     </div>
