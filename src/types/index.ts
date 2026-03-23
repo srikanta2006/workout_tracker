@@ -26,3 +26,9 @@ export interface Routine {
   muscleGroup: MuscleGroup;
   exercises: Omit<Exercise, 'sets'>[]; // Routines just save the exercises, maybe default sets
 }
+
+export interface BodyweightRecord {
+  id: string;
+  date: string; // yyyy-MM-dd format
+  weight: number;
+}

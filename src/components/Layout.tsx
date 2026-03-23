@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Activity, History, Dumbbell, BarChart2, ClipboardList } from 'lucide-react';
+import { Activity, History, Dumbbell, BarChart2, ClipboardList, Settings as SettingsIcon } from 'lucide-react';
 import clsx from 'clsx';
 
 export function Layout() {
@@ -8,11 +8,14 @@ export function Layout() {
   return (
     <div className="flex flex-col min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)] w-full max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-[var(--color-border-subtle)]">
       {/* Header */}
-      <header className="px-4 py-4 bg-[var(--color-bg-card)] border-b border-[var(--color-border-subtle)] sticky top-0 z-10">
-        <div className="flex items-center justify-center gap-2">
+      <header className="px-4 py-4 bg-[var(--color-bg-card)] border-b border-[var(--color-border-subtle)] sticky top-0 z-10 flex justify-between items-center">
+        <div className="flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
           <h1 className="text-xl font-bold tracking-tight">ParkWise Workout</h1>
         </div>
+        <Link to="/settings" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors p-1">
+          <SettingsIcon className="w-5 h-5" />
+        </Link>
       </header>
 
       {/* Main Content Area */}

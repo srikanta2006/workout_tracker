@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import { WorkoutCard } from '../components/WorkoutCard';
+import { RecoveryWidget } from '../components/RecoveryWidget';
 import { Dumbbell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -36,6 +37,8 @@ export function Dashboard() {
           </p>
         </div>
       </div>
+
+      <RecoveryWidget />
 
       <div className="flex-1 w-full space-y-4">
         {workouts.map(workout => (

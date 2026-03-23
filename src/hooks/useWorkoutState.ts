@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { WorkoutSession, Routine } from '../types';
+import type { WorkoutSession, Routine, BodyweightRecord } from '../types';
 
 export function useWorkoutState() {
   const [workouts, setWorkouts] = useState<WorkoutSession[]>(() => {
@@ -27,6 +27,22 @@ export function useWorkoutState() {
     return [];
   });
 
+  const [bodyweights, setBodyweights] = useState<BodyweightRecord[]>(() => {
+    const saved = localStorage.getItem('workout_tracker_bodyweights');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
+
+  const [favoriteExercises, setFavoriteExercises] = useState<string[]>(() => {
+    const saved = localStorage.getItem('workout_tracker_favorites');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
+
   useEffect(() => {
     localStorage.setItem('workout_tracker_data', JSON.stringify(workouts));
   }, [workouts]);
@@ -34,6 +50,14 @@ export function useWorkoutState() {
   useEffect(() => {
     localStorage.setItem('workout_tracker_routines', JSON.stringify(routines));
   }, [routines]);
+
+  useEffect(() => {
+    localStorage.setItem('workout_tracker_bodyweights', JSON.stringify(bodyweights));
+  }, [bodyweights]);
+
+  useEffect(() => {
+    localStorage.setItem('workout_tracker_favorites', JSON.stringify(favoriteExercises));
+  }, [favoriteExercises]);
 
   const addWorkout = (workout: WorkoutSession) => {
     setWorkouts((prev) => [workout, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -58,5 +82,29 @@ export function useWorkoutState() {
     setRoutines((prev) => prev.filter((r) => r.id !== id));
   };
 
-  return { workouts, addWorkout, updateWorkout, deleteWorkout, routines, addRoutine, deleteRoutine };
+  const addBodyweight = (record: BodyweightRecord) => {
+    setBodyweights((prev) => [...prev, record].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+  };
+
+  const deleteBodyweight = (id: string) => {
+    setBodyweights((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const toggleFavoriteExercise = (exerciseName: string) => {
+    setFavoriteExercises(prev => {
+      const name = exerciseName.trim();
+      if (!name) return prev;
+      if (prev.includes(name)) {
+        return prev.filter(e => e !== name);
+      }
+      return [name, ...prev];
+    });
+  };
+
+  return { 
+    workouts, addWorkout, updateWorkout, deleteWorkout, 
+    routines, addRoutine, deleteRoutine,
+    bodyweights, addBodyweight, deleteBodyweight,
+    favoriteExercises, toggleFavoriteExercise
+  };
 }
