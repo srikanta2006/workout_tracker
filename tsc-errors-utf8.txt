@@ -1,0 +1,7 @@
+﻿src/components/WorkoutCard.tsx(3,10): error TS1484: 'WorkoutSession' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/hooks/useWorkoutState.ts(2,10): error TS1484: 'WorkoutSession' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/ActiveWorkout.tsx(4,10): error TS1484: 'MuscleGroup' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/ActiveWorkout.tsx(4,23): error TS1484: 'WorkoutSession' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/ActiveWorkout.tsx(4,39): error TS1484: 'Exercise' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/ActiveWorkout.tsx(4,49): error TS1484: 'WorkoutSet' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/ActiveWorkout.tsx(4,49): error TS6133: 'WorkoutSet' is declared but its value is never read.
