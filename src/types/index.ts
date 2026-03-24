@@ -5,26 +5,28 @@ export interface WorkoutSet {
   setNumber: number;
   reps: number | '';
   weight: number | '';
+  completed?: boolean;
 }
 
 export interface Exercise {
   id: string;
   name: string;
+  notes?: string;
   sets: WorkoutSet[];
 }
 
 export interface WorkoutSession {
   id: string;
   date: string; // ISO string format
-  muscleGroup: MuscleGroup;
+  muscleGroups: MuscleGroup[];
   exercises: Exercise[];
 }
 
 export interface Routine {
   id: string;
   name: string;
-  muscleGroup: MuscleGroup;
-  exercises: Omit<Exercise, 'sets'>[]; // Routines just save the exercises, maybe default sets
+  muscleGroups: MuscleGroup[];
+  exercises: Exercise[]; // Routines save the exact exercises, sets, and reps configured!
 }
 
 export interface BodyweightRecord {

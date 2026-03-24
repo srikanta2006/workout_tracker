@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Activity, LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell } from 'lucide-react';
+import { LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell, Calendar, Play } from 'lucide-react';
 import clsx from 'clsx';
 
 export function Layout() {
@@ -8,7 +8,8 @@ export function Layout() {
   // Consolidating to 4 core tabs for an ultra-clean, native application feel.
   const NAV_ITEMS = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Workout', path: '/routines', icon: Activity },
+    { name: 'Planner', path: '/routines', icon: Calendar },
+    { name: 'Session', path: '/session', icon: Play },
     { name: 'Measure', path: '/stats', icon: BarChart2 },
     { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
@@ -26,7 +27,12 @@ export function Layout() {
         <nav className="flex-1 py-6 px-3 lg:px-4 space-y-2 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.path === '/routines' && location.pathname.startsWith('/workout'));
+            const searchParams = new URLSearchParams(location.search);
+            const isTemplateMode = searchParams.get('mode') === 'template';
+
+            const isActive = location.pathname === item.path || 
+              (item.path === '/routines' && location.pathname.startsWith('/workout') && isTemplateMode) ||
+              (item.path === '/session' && location.pathname.startsWith('/workout') && !isTemplateMode);
 
             return (
               <Link
@@ -66,7 +72,12 @@ export function Layout() {
         <div className="flex items-center justify-around h-[4.5rem] px-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.path === '/routines' && location.pathname.startsWith('/workout'));
+            const searchParams = new URLSearchParams(location.search);
+            const isTemplateMode = searchParams.get('mode') === 'template';
+
+            const isActive = location.pathname === item.path || 
+              (item.path === '/routines' && location.pathname.startsWith('/workout') && isTemplateMode) ||
+              (item.path === '/session' && location.pathname.startsWith('/workout') && !isTemplateMode);
 
             return (
               <Link

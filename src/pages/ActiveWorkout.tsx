@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { RestTimer } from '../components/RestTimer';
+import { WorkoutTimer } from '../components/WorkoutTimer';
 import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
 import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star } from 'lucide-react';
@@ -13,13 +13,32 @@ export function ActiveWorkout() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
-  const { workouts, routines, addWorkout, updateWorkout, addRoutine, favoriteExercises, toggleFavoriteExercise } = useWorkoutState();
+  const isTemplateMode = searchParams.get('mode') === 'template';
+  const { workouts, routines, addWorkout, updateWorkout, addRoutine, favoriteExercises, toggleFavoriteExercise, activeProgram, programs } = useWorkoutState();
   
   const existingWorkout = id ? workouts.find(w => w.id === id) : null;
-  const existingRoutine = routineId ? routines.find(r => r.id === routineId) : null;
+  // If ?routineId= is passed, use it. OTHERWISE, check if there's an active program and find today's routine!
+  let autoRoutineId = routineId;
+  if (!existingWorkout && !autoRoutineId && activeProgram) {
+    const activeProg = programs.find(p => p.id === activeProgram.programId);
+    if (activeProg) {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const start = new Date(activeProgram.startDate);
+      start.setHours(0,0,0,0);
+      const daysPassed = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      const currentCycleDay = (daysPassed % activeProg.lengthInDays) + 1;
+      const todaySchedule = activeProg.schedule.find(s => s.dayNumber === currentCycleDay);
+      if (todaySchedule?.routineId) {
+        autoRoutineId = todaySchedule.routineId;
+      }
+    }
+  }
+
+  const existingRoutine = autoRoutineId ? routines.find(r => r.id === autoRoutineId) : null;
 
   const [date, setDate] = useState(() => existingWorkout?.date || new Date().toISOString().split('T')[0]);
-  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>(() => existingWorkout?.muscleGroup || existingRoutine?.muscleGroup || 'Chest');
+  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>(() => existingWorkout?.muscleGroups || existingRoutine?.muscleGroups || ['Chest']);
   
   const initialExercises = () => {
     if (existingWorkout) return existingWorkout.exercises;
@@ -27,10 +46,14 @@ export function ActiveWorkout() {
       return existingRoutine.exercises.map(ex => ({
         ...ex,
         id: crypto.randomUUID(),
-        sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] as WorkoutSet[]
+        sets: ex.sets.map(s => ({
+          ...s,
+          id: crypto.randomUUID(),
+          completed: false
+        }))
       }));
     }
-    return [{ 
+    return isTemplateMode ? [] : [{ 
       id: crypto.randomUUID(), 
       name: '', 
       sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] as WorkoutSet[]
@@ -38,9 +61,12 @@ export function ActiveWorkout() {
   };
 
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const [templateName, setTemplateName] = useState(() => existingRoutine?.name || '');
 
-  // Dynamic Datalist options based on the selected muscle group or if they selected Full Body
-  const availableExercises = EXERCISE_DATABASE[muscleGroup] || ALL_EXERCISES;
+  // Dynamic Datalist Options - Combine all selected muscle groups into a single array
+  const availableExercises = muscleGroups.includes('Full Body') 
+    ? ALL_EXERCISES 
+    : Array.from(new Set(muscleGroups.flatMap(mg => EXERCISE_DATABASE[mg] || [])));
 
   const getExerciseHistory = (exerciseName: string) => {
     if (!exerciseName.trim()) return null;
@@ -91,6 +117,10 @@ export function ActiveWorkout() {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, name } : ex));
   };
 
+  const handleUpdateExerciseNotes = (id: string, notes: string) => {
+    setExercises(exercises.map(ex => ex.id === id ? { ...ex, notes } : ex));
+  };
+
   const handleAddSet = (exerciseId: string) => {
     setExercises(exercises.map(ex => {
       if (ex.id === exerciseId) {
@@ -113,22 +143,41 @@ export function ActiveWorkout() {
     }));
   };
 
-  const handleUpdateSet = (exerciseId: string, setId: string, field: 'reps' | 'weight', value: string) => {
-    setExercises(exercises.map(ex => {
-      if (ex.id === exerciseId) {
-        return {
-          ...ex,
-          sets: ex.sets.map(s => {
-            if (s.id === setId) {
-              const parsedVal = value === '' ? '' : Number(value);
-              return { ...s, [field]: parsedVal };
-            }
-            return s;
-          })
-        };
+  const handleUpdateSet = (exerciseId: string, setId: string, field: 'reps' | 'weight' | 'completed', value: string | boolean) => {
+    setExercises(prev => {
+      const updated = prev.map(ex => {
+        if (ex.id === exerciseId) {
+          return {
+            ...ex,
+            sets: ex.sets.map(s => {
+              if (s.id === setId) {
+                if (field === 'completed') return { ...s, completed: value as boolean };
+                const parsedVal = value === '' ? '' : Number(value);
+                return { ...s, [field]: parsedVal };
+              }
+              return s;
+            })
+          };
+        }
+        return ex;
+      });
+
+      // Auto-save logic ONLY if ticking a set to true in a real workout
+      if (field === 'completed' && value === true && !isTemplateMode) {
+        if (existingWorkout) {
+          updateWorkout(existingWorkout.id, { id: existingWorkout.id, date, muscleGroups, exercises: updated });
+        } else if (updated.some(ex => ex.name.trim())) {
+           // If it's a new workout, auto-create it so it saves to history immediately
+           const newId = crypto.randomUUID();
+           addWorkout({ id: newId, date, muscleGroups, exercises: updated });
+           // We use replace to put the ID in the URL without pushing history, 
+           // so that subsequent ticks will update the existing session
+           navigate(`/workout/${newId}`, { replace: true });
+        }
       }
-      return ex;
-    }));
+
+      return updated;
+    });
   };
 
   const handleSaveWorkout = () => {
@@ -140,7 +189,7 @@ export function ActiveWorkout() {
     const newWorkout: WorkoutSession = {
       id: existingWorkout ? existingWorkout.id : crypto.randomUUID(),
       date,
-      muscleGroup,
+      muscleGroups,
       exercises
     };
 
@@ -158,22 +207,35 @@ export function ActiveWorkout() {
       return;
     }
 
-    const name = window.prompt("Enter a name for this routine:", `${muscleGroup} Workout`);
-    if (!name) return;
+    let finalName = templateName.trim();
+    if (isTemplateMode) {
+      if (!finalName) {
+        alert("Please enter a Template Name at the top.");
+        return;
+      }
+    } else {
+      const promptName = window.prompt("Enter a name for this routine:", `${muscleGroups.join(', ')} Workout`);
+      if (!promptName) return;
+      finalName = promptName;
+    }
 
     const newRoutine: Routine = {
       id: crypto.randomUUID(),
-      name,
-      muscleGroup,
-      exercises: exercises.map(ex => ({ id: ex.id, name: ex.name })) 
+      name: finalName,
+      muscleGroups,
+      exercises: exercises.map(ex => ({ ...ex })) // Deep copy exercises including sets!
     };
 
     addRoutine(newRoutine);
-    alert('Routine saved!');
+    if (isTemplateMode) {
+      navigate('/routines');
+    } else {
+      alert('Routine saved!');
+    }
   };
 
-  // Only show favorites that match the current muscle group OR if they are working out "Full Body", show all favorites
-  const relevantFavorites = favoriteExercises.filter(fav => muscleGroup === 'Full Body' || availableExercises.includes(fav));
+  // Only show favorites that match the current muscle groups OR if they are working out "Full Body", show all favorites
+  const relevantFavorites = favoriteExercises.filter(fav => muscleGroups.includes('Full Body') || availableExercises.includes(fav));
 
   return (
     <div className="w-full h-full flex flex-col pb-8">
@@ -185,10 +247,23 @@ export function ActiveWorkout() {
       <div className="mb-6 px-1 border-b border-[var(--color-border-subtle)] pb-4">
         <h2 className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
-          {existingWorkout ? 'Edit Workout' : (existingRoutine ? `Routine: ${existingRoutine.name}` : 'Log Workout')}
+          {isTemplateMode ? 'Create Day Template' : (existingWorkout ? 'Edit Workout' : (existingRoutine ? `Routine: ${existingRoutine.name}` : 'Log Workout'))}
         </h2>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`grid ${isTemplateMode ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+          {isTemplateMode && (
+          <div className="flex flex-col mb-2">
+            <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Template Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Heavy Leg Day"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-3 text-sm text-[var(--color-text-main)] font-bold w-full outline-none focus:border-[var(--color-brand-500)] transition-colors placeholder:font-normal placeholder:opacity-50"
+            />
+          </div>
+          )}
+          {!isTemplateMode && (
           <div className="flex flex-col">
             <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Date</label>
             <input 
@@ -198,22 +273,34 @@ export function ActiveWorkout() {
               className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] w-full outline-none focus:border-[var(--color-brand-500)] transition-colors"
             />
           </div>
-          <div className="flex flex-col">
-            <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Target</label>
-            <select
-              value={muscleGroup}
-              onChange={(e) => setMuscleGroup(e.target.value as MuscleGroup)}
-              className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] w-full outline-none focus:border-[var(--color-brand-500)] transition-colors"
-            >
-              {MUSCLE_GROUPS.map(group => (
-                <option key={group} value={group}>{group}</option>
-              ))}
-            </select>
+          )}
+          <div className="flex flex-col md:col-span-2">
+            <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">Target Focus (Multi-Select)</label>
+            <div className="flex flex-wrap gap-2">
+              {MUSCLE_GROUPS.map(group => {
+                const isSelected = muscleGroups.includes(group);
+                return (
+                  <button
+                    key={group}
+                    onClick={() => {
+                      if (isSelected && muscleGroups.length > 1) {
+                        setMuscleGroups(muscleGroups.filter(g => g !== group));
+                      } else if (!isSelected) {
+                        setMuscleGroups([...muscleGroups, group]);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-[0.98] ${isSelected ? 'bg-[var(--color-brand-500)] text-white shadow-md' : 'bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:border-[var(--color-brand-500)]/50'}`}
+                  >
+                    {group}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      <RestTimer />
+      {!isTemplateMode && <WorkoutTimer />}
 
       <div className="flex-1 space-y-6 mt-4">
 
@@ -276,6 +363,16 @@ export function ActiveWorkout() {
                 )}
               </div>
 
+              {!isTemplateMode && (
+              <input
+                type="text"
+                placeholder="Notes (e.g. seat position 4, felt heavy...)"
+                value={exercise.notes || ''}
+                onChange={(e) => handleUpdateExerciseNotes(exercise.id, e.target.value)}
+                className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded text-xs p-2 text-[var(--color-text-muted)] outline-none focus:border-[var(--color-brand-500)] focus:text-[var(--color-text-main)] transition-colors mt-2"
+              />
+              )}
+
               {/* History / PR Indicators */}
               {(history?.maxWeight || history?.lastLiftStr) && (
                 <div className="flex gap-4 text-xs mb-4 px-1 font-medium mt-2">
@@ -295,7 +392,7 @@ export function ActiveWorkout() {
               <div className="space-y-2 mt-4">
                 <div className="grid grid-cols-12 gap-2 px-2 text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                   <div className="col-span-2 text-center">Set</div>
-                  <div className="col-span-4 text-center">lbs/kg</div>
+                  <div className="col-span-4 text-center">kg</div>
                   <div className="col-span-4 text-center">Reps</div>
                   <div className="col-span-2 text-center"></div>
                 </div>
@@ -305,7 +402,7 @@ export function ActiveWorkout() {
                   const isNewPR = history?.maxWeight ? setWeight > history.maxWeight : false;
 
                   return (
-                    <div key={set.id} className="grid grid-cols-12 gap-2 items-center bg-[var(--color-bg-base)] rounded-lg p-2 relative">
+                    <div key={set.id} className={`grid grid-cols-12 gap-2 items-center bg-[var(--color-bg-base)] rounded-lg p-2 relative transition-all ${set.completed ? 'opacity-50 grayscale' : ''}`}>
                       {isNewPR && (
                         <div className="absolute -left-2 top-1/2 -translate-y-1/2 bg-yellow-400 text-yellow-900 text-[8px] font-bold px-1 rounded shadow-sm rotate-[-15deg]">
                           NEW PR!
@@ -323,7 +420,7 @@ export function ActiveWorkout() {
                           placeholder="0"
                           value={set.weight}
                           onChange={(e) => handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)}
-                          className={`w-full bg-transparent text-center font-bold outline-none ${isNewPR ? 'text-yellow-600 dark:text-yellow-400' : 'text-[var(--color-text-main)]'}`}
+                          className={`w-full bg-transparent text-center font-bold outline-none ${isNewPR ? 'text-yellow-600 dark:text-yellow-400' : 'text-[var(--color-text-main)]'} ${set.completed ? 'line-through' : ''}`}
                         />
                       </div>
                       <div className="col-span-4">
@@ -333,10 +430,18 @@ export function ActiveWorkout() {
                           placeholder="0"
                           value={set.reps}
                           onChange={(e) => handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)}
-                          className="w-full bg-transparent text-center font-bold outline-none text-[var(--color-text-main)]"
+                          className={`w-full bg-transparent text-center font-bold outline-none text-[var(--color-text-main)] ${set.completed ? 'line-through' : ''}`}
                         />
                       </div>
-                      <div className="col-span-2 flex justify-center">
+                      <div className="col-span-2 flex justify-center gap-2">
+                        {!isTemplateMode && (
+                        <button
+                          onClick={() => handleUpdateSet(exercise.id, set.id, 'completed', !set.completed)}
+                          className={`p-1 rounded transition-colors ${set.completed ? 'bg-green-500 text-white' : 'bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:text-green-500'}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        </button>
+                        )}
                         <button 
                           onClick={() => handleRemoveSet(exercise.id, set.id)}
                           disabled={exercise.sets.length === 1}
@@ -368,19 +473,23 @@ export function ActiveWorkout() {
         </button>
       </div>
 
-      <div className="mt-8 pt-4 border-t border-[var(--color-border-subtle)] space-y-3">
+      <div className={`mt-8 pt-4 border-t border-[var(--color-border-subtle)] space-y-3`}>
+        {!isTemplateMode && (
         <button 
           onClick={handleSaveWorkout}
           className="w-full bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
         >
-          <Save className="w-5 h-5" /> {existingWorkout ? 'Save Changes' : 'Save Workout'}
+          <Save className="w-5 h-5" /> {existingWorkout ? 'End Session' : 'End Session'}
         </button>
+        )}
+        {isTemplateMode && (
         <button 
           onClick={handleSaveAsRoutine}
-          className="w-full bg-[var(--color-bg-card)] border border-[var(--color-brand-500)] text-[var(--color-brand-600)] py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-[var(--color-brand-500)]/5 transition-all active:scale-[0.98]"
+          className={`w-full bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 transition-all active:scale-[0.98]`}
         >
-          <ClipboardList className="w-5 h-5" /> Save as Template
+          <ClipboardList className="w-5 h-5" /> Save Template
         </button>
+        )}
       </div>
     </div>
   );

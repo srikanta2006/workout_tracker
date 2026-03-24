@@ -6,7 +6,11 @@ export function useWorkoutState() {
     const saved = localStorage.getItem('workout_tracker_data');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return parsed.map((w: any) => ({
+          ...w,
+          muscleGroups: w.muscleGroups || (w.muscleGroup ? [w.muscleGroup] : ['Full Body'])
+        }));
       } catch (e) {
         console.error('Failed to parse workouts from local storage', e);
         return [];
@@ -19,7 +23,11 @@ export function useWorkoutState() {
     const saved = localStorage.getItem('workout_tracker_routines');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return parsed.map((r: any) => ({
+          ...r,
+          muscleGroups: r.muscleGroups || (r.muscleGroup ? [r.muscleGroup] : ['Full Body'])
+        }));
       } catch (e) {
         return [];
       }

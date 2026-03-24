@@ -15,7 +15,10 @@ export function RecoveryWidget() {
     
     return MUSCLE_GROUPS.map(group => {
       // Find the most recent workout for this muscle group
-      const recentWorkout = workouts.find(w => w.muscleGroup === group);
+      // Assuming workouts are sorted by date descending, or we need to find the max date
+      // For now, `find` will return the first match, which might not be the most recent if not sorted.
+      // A more robust solution would be to sort or filter for all matching workouts and then pick the latest.
+      const recentWorkout = workouts.find(w => w.muscleGroups?.includes(group));
       
       let status: 'Fresh' | 'Recovering' | 'Fatigued' = 'Fresh';
       let daysAgo = -1;

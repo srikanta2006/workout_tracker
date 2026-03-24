@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { Dumbbell, Plus, Calendar, Play, Trash2, CheckCircle2, Copy } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Program } from '../types';
 
@@ -14,6 +14,9 @@ export function Routines() {
   const [newProgramName, setNewProgramName] = useState('');
   const [newProgramLength, setNewProgramLength] = useState(7);
   const [newProgramSchedule, setNewProgramSchedule] = useState<Record<number, string | null>>({});
+  
+  // Start Date for activating a Routine
+  const [selectedStartDates, setSelectedStartDates] = useState<Record<string, string>>({});
 
   const handleRepeatWeek1 = () => {
     const updatedSchedule = { ...newProgramSchedule };
@@ -26,7 +29,7 @@ export function Routines() {
 
   const handleSaveProgram = () => {
     if (!newProgramName.trim()) {
-      alert("Please enter a program name.");
+      alert("Please enter a routine name.");
       return;
     }
 
@@ -53,19 +56,21 @@ export function Routines() {
       // Deactivate
       setActiveProgram(null);
     } else {
+      const startDate = selectedStartDates[id] || new Date().toISOString().split('T')[0];
       setActiveProgram({
         programId: id,
-        startDate: new Date().toISOString().split('T')[0]
+        startDate: startDate
       });
+      navigate('/session'); // Navigate to the dedicated Session tab
     }
   };
 
   return (
     <div className="w-full h-full flex flex-col pb-8">
       <div className="mb-6 px-1">
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Training</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Planner</h2>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          Manage your routine templates and multi-week programs.
+          Build single Day Templates, then combine them into multi-week Routines.
         </p>
 
         <div className="flex glass-panel rounded-xl p-1 mt-4 gap-1">
@@ -73,13 +78,13 @@ export function Routines() {
             onClick={() => { setActiveTab('templates'); setIsCreatingProgram(false); }}
             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'templates' ? 'bg-[var(--color-bg-base)] text-[var(--color-brand-600)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
           >
-            Templates
+            Day Templates
           </button>
           <button 
             onClick={() => setActiveTab('programs')}
             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'programs' ? 'bg-[var(--color-bg-base)] text-[var(--color-brand-600)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
           >
-            Programs
+            Routines (Weeks)
           </button>
         </div>
       </div>
@@ -92,13 +97,13 @@ export function Routines() {
             {routines.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center px-4 w-full col-span-full border border-dashed border-[var(--color-border-subtle)] rounded-2xl">
                 <Dumbbell className="w-12 h-12 text-[var(--color-brand-500)] mx-auto mb-4 opacity-80" />
-                <h3 className="text-lg font-bold mb-2">No Routines Yet</h3>
-                <p className="text-sm text-[var(--color-text-muted)] mb-6">Create standalone routine templates to quick-start workouts.</p>
+                <h3 className="text-lg font-bold mb-2">No Day Templates</h3>
+                <p className="text-sm text-[var(--color-text-muted)] mb-6">Create standalone day templates (e.g. Leg Day, Pull Day) to use in your routines.</p>
                 <Link
-                  to="/workout"
+                  to="/workout?mode=template"
                   className="bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white px-6 py-3 rounded-lg font-semibold inline-block transition-colors"
                 >
-                  Create from New Workout
+                  Create Day Template
                 </Link>
               </div>
             ) : (
@@ -108,7 +113,7 @@ export function Routines() {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-[var(--color-text-main)]">{routine.name}</h3>
-                        <div className="text-sm text-[var(--color-text-muted)] mt-1">{routine.muscleGroup} Day</div>
+                        <div className="text-sm text-[var(--color-text-muted)] mt-1">{routine.muscleGroups?.join(', ')} Focus</div>
                       </div>
                       <button 
                         onClick={() => deleteRoutine(routine.id)}
@@ -122,19 +127,13 @@ export function Routines() {
                       <span className="font-semibold">{routine.exercises.length}</span> exercises included
                     </div>
 
-                    <button 
-                      onClick={() => navigate(`/workout?routineId=${routine.id}`)}
-                      className="w-full bg-[var(--color-brand-500)]/10 text-[var(--color-brand-600)] hover:bg-[var(--color-brand-500)] hover:text-white py-2 rounded-lg font-bold flex justify-center items-center gap-2 transition-all active:scale-[0.98]"
-                    >
-                      <Play className="w-4 h-4 fill-current" /> Start Routine
-                    </button>
                   </div>
                 ))}
                 <button 
-                  onClick={() => navigate('/workout')}
+                  onClick={() => navigate('/workout?mode=template')}
                   className="w-full h-full min-h-[160px] border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/5 transition-colors flex flex-col justify-center items-center gap-2"
                 >
-                  <Plus className="w-8 h-8" /> New Routine
+                  <Plus className="w-8 h-8" /> New Day Template
                 </button>
               </>
             )}
@@ -148,18 +147,18 @@ export function Routines() {
               <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm col-span-full max-w-2xl mx-auto w-full">
                 <h3 className="text-xl font-bold flex items-center gap-2 mb-6">
                   <Calendar className="w-5 h-5 text-[var(--color-brand-500)]" />
-                  Program Builder
+                  Routine Builder
                 </h3>
 
                 {routines.length === 0 && (
                   <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-600 dark:text-yellow-400 p-4 rounded-xl mb-6 text-sm font-semibold">
-                    ⚠️ You don't have any saved Routine Templates! The Program Builder works by scheduling your existing templates. Please go to the <b>Templates</b> tab first and create some routines (like "Push Day" or "Upper Body").
+                    ⚠️ You don't have any saved Day Templates! The Routine Builder connects your existing day templates into a long-term plan. Please go to the <b>Day Templates</b> tab first and create some days.
                   </div>
                 )}
                 
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider block">Program Name</label>
+                    <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider block">Routine Name</label>
                     <input 
                       type="text" 
                       placeholder="e.g. 4-Week Hypertrophy"
@@ -169,7 +168,7 @@ export function Routines() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider block">Cycle Length (Days)</label>
+                    <label className="text-xs font-semibold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider block">Routine Length (Days)</label>
                     <select 
                       value={newProgramLength}
                       onChange={e => setNewProgramLength(Number(e.target.value))}
@@ -189,7 +188,7 @@ export function Routines() {
                       onClick={handleRepeatWeek1}
                       className="w-full mb-2 py-2 border border-[var(--color-brand-500)] text-[var(--color-brand-600)] rounded-lg font-bold text-xs hover:bg-[var(--color-brand-500)]/10 transition-colors flex justify-center items-center gap-1 active:scale-[0.98]"
                     >
-                      <Copy className="w-4 h-4" /> Repeat Week 1 Schedule
+                      <Copy className="w-4 h-4" /> Repeat Week 1 Plan
                     </button>
                   )}
                   {Array.from({ length: newProgramLength }).map((_, i) => {
@@ -204,7 +203,7 @@ export function Routines() {
                         >
                           <option value="" className="bg-[var(--color-bg-card)]">Rest Day 😴</option>
                           {routines.map(r => (
-                            <option key={r.id} value={r.id} className="bg-[var(--color-bg-card)]">{r.name} ({r.muscleGroup})</option>
+                            <option key={r.id} value={r.id} className="bg-[var(--color-bg-card)]">{r.name} ({r.muscleGroups?.join(', ')})</option>
                           ))}
                         </select>
                       </div>
@@ -223,7 +222,7 @@ export function Routines() {
                     onClick={handleSaveProgram}
                     className="flex-1 py-3 bg-[var(--color-brand-500)] text-white rounded-xl font-bold text-sm hover:bg-[var(--color-brand-600)] transition-colors flex justify-center items-center gap-2"
                   >
-                    <CheckCircle2 className="w-5 h-5" /> Save Plan
+                    <CheckCircle2 className="w-5 h-5" /> Save Routine
                   </button>
                 </div>
               </div>
@@ -232,8 +231,8 @@ export function Routines() {
                 {programs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center px-4 w-full col-span-full border border-dashed border-[var(--color-border-subtle)] rounded-2xl">
                     <Calendar className="w-12 h-12 text-[var(--color-brand-500)] mx-auto mb-4 opacity-80" />
-                    <h3 className="text-lg font-bold mb-2">No Programs</h3>
-                    <p className="text-sm text-[var(--color-text-muted)] mb-6">String together your routines into a structured multi-week training cycle.</p>
+                    <h3 className="text-lg font-bold mb-2">No Routines Configured</h3>
+                    <p className="text-sm text-[var(--color-text-muted)] mb-6">String together your Day Templates into a structured multi-week Routine.</p>
                   </div>
                 ) : (
                   <>
@@ -247,7 +246,7 @@ export function Routines() {
                                 <h3 className="text-lg font-bold text-[var(--color-text-main)]">{program.name}</h3>
                                 {isActive && <span className="bg-green-500 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Active</span>}
                               </div>
-                              <div className="text-sm text-[var(--color-text-muted)] mt-1">{program.lengthInDays} Day Cycle</div>
+                              <div className="text-sm text-[var(--color-text-muted)] mt-1">{program.lengthInDays} Day Routine</div>
                             </div>
                             <button 
                               onClick={() => deleteProgram(program.id)}
@@ -264,11 +263,23 @@ export function Routines() {
                             })}
                           </div>
 
+                          {!isActive && (
+                            <div className="mb-4">
+                              <label className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider block mb-1">Select Start Date</label>
+                              <input 
+                                type="date" 
+                                value={selectedStartDates[program.id] || new Date().toISOString().split('T')[0]}
+                                onChange={(e) => setSelectedStartDates({...selectedStartDates, [program.id]: e.target.value})}
+                                className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] p-2 rounded-lg text-sm w-full outline-none focus:border-[var(--color-brand-500)] text-[var(--color-text-main)]"
+                              />
+                            </div>
+                          )}
+
                           <button 
                             onClick={() => handleActivateProgram(program.id)}
-                            className={`w-full py-2.5 rounded-lg font-bold flex justify-center items-center gap-2 transition-all active:scale-[0.98] ${isActive ? 'bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white' : 'bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] shadow-md'}`}
+                            className={`w-full py-3 rounded-lg font-bold flex justify-center items-center gap-2 transition-all active:scale-[0.98] ${isActive ? 'bg-[var(--color-bg-card)] border-2 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] shadow-md'}`}
                           >
-                            {isActive ? 'Deactivate Program' : 'Set as Active Program'}
+                            {isActive ? 'Stop Current Routine' : 'Start Routine Now'}
                           </button>
                         </div>
                       );
@@ -279,7 +290,7 @@ export function Routines() {
                   onClick={() => setIsCreatingProgram(true)}
                   className="w-full h-full min-h-[160px] border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/5 transition-colors flex flex-col justify-center items-center gap-2"
                 >
-                  <Plus className="w-8 h-8" /> New Program Cycle
+                  <Plus className="w-8 h-8" /> Assemble New Routine Check
                 </button>
               </>
             )}

@@ -61,7 +61,7 @@ export function Dashboard() {
             
             <div className="relative z-10 w-full mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="bg-[var(--color-brand-500)]/10 text-[var(--color-brand-500)] text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">Active Cycle</span>
+                <span className="bg-[var(--color-brand-500)]/10 text-[var(--color-brand-500)] text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">Active Routine</span>
                 <span className="text-sm font-semibold text-[var(--color-text-muted)]">{activeProg.name}</span>
               </div>
               
@@ -77,7 +77,7 @@ export function Dashboard() {
                   <div className="flex justify-between items-center gap-2">
                     <span className="font-bold text-lg leading-tight line-clamp-1 break-all flex-1">{routineToPerform.name}</span>
                     <button 
-                      onClick={() => navigate(`/workout?routineId=${routineToPerform.id}`)}
+                      onClick={() => navigate(`/session`)}
                       className="bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95 flex items-center gap-1 shrink-0"
                     >
                       <Play className="w-4 h-4 fill-current" /> GO
@@ -141,7 +141,7 @@ export function Dashboard() {
                       <p className="font-medium text-sm text-[var(--color-text-main)] mb-2">{idx + 1}. {ex.name}</p>
                       <div className="grid grid-cols-3 gap-2 text-xs text-[var(--color-text-muted)] mb-1 px-2 border-b border-[var(--color-border-subtle)] pb-1">
                         <span>Set</span>
-                        <span className="text-center">lbs/kg</span>
+                        <span className="text-center">kg</span>
                         <span className="text-right">Reps</span>
                       </div>
                       {ex.sets.map(set => (

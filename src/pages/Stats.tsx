@@ -102,8 +102,17 @@ export function Stats() {
             break;
           }
         }
-        if (muscleGroupCounts[mg] !== undefined) {
+        
+        if (mg !== 'Other' && muscleGroupCounts[mg] !== undefined) {
+          // Precise mapping found in Dictionary
           muscleGroupCounts[mg] += ex.sets.length; 
+        } else if (w.muscleGroups && w.muscleGroups.length > 0) {
+          // Unknown or custom exercise: fall back to the session's macro-tags
+          w.muscleGroups.forEach(taggedMg => {
+            if (muscleGroupCounts[taggedMg] !== undefined) {
+              muscleGroupCounts[taggedMg] += ex.sets.length;
+            }
+          });
         }
       });
     });
@@ -179,7 +188,7 @@ export function Stats() {
               <div className="flex gap-2">
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Target WT</label>
-                  <input type="number" value={newGoalWeight} onChange={e => setNewGoalWeight(e.target.value)} placeholder="lbs/kg" className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] outline-none w-full" />
+                  <input type="number" value={newGoalWeight} onChange={e => setNewGoalWeight(e.target.value)} placeholder="kg" className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] outline-none w-full" />
                 </div>
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Deadline</label>
@@ -260,7 +269,7 @@ export function Stats() {
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px', color: 'var(--color-text-main)', fontWeight: 'bold' }}
                     itemStyle={{ color: '#3b82f6' }}
-                    formatter={(value: any) => [`${value} lbs`, 'Predicted 1RM']}
+                    formatter={(value: any) => [`${value} kg`, 'Predicted 1RM']}
                     labelStyle={{ color: 'var(--color-text-muted)', marginBottom: '4px' }}
                   />
                   <Line type="monotone" dataKey="max1RM" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
@@ -338,7 +347,7 @@ export function Stats() {
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}
                     itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
-                    formatter={(value: any) => [`${value} lbs`]}
+                    formatter={(value: any) => [`${value} kg`]}
                     labelStyle={{ color: 'var(--color-text-muted)', marginBottom: '4px' }}
                   />
                   <Line type="monotone" dataKey="weight" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} activeDot={{ r: 6 }} />
@@ -353,7 +362,7 @@ export function Stats() {
                 <div key={bw.id} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-[var(--color-bg-base)] transition-colors">
                   <span className="text-[var(--color-text-muted)] font-medium">{format(parseISO(bw.date), 'MMMM d, yyyy')}</span>
                   <div className="flex items-center gap-4">
-                    <span className="font-bold text-[var(--color-text-main)]">{bw.weight} lbs</span>
+                    <span className="font-bold text-[var(--color-text-main)]">{bw.weight} kg</span>
                     <button onClick={() => deleteBodyweight(bw.id)} className="text-red-500/50 hover:text-red-500 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>

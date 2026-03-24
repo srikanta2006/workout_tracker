@@ -1,5 +1,5 @@
-import { format } from 'date-fns';
-import { Dumbbell, Calendar, ChevronRight } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Dumbbell, ChevronRight } from 'lucide-react';
 import type { WorkoutSession } from '../types';
 
 interface WorkoutCardProps {
@@ -21,11 +21,8 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
       <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--color-brand-500)]/5 rounded-full blur-2xl pointer-events-none"></div>
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-lg font-bold text-[var(--color-text-main)]">{workout.muscleGroup} Day</h3>
-          <div className="flex items-center text-sm text-[var(--color-text-muted)] mt-1">
-            <Calendar className="w-4 h-4 mr-1" />
-            {format(new Date(workout.date), 'MMM d, yyyy')}
-          </div>
+          <h3 className="text-lg font-bold text-[var(--color-text-main)]">{workout.muscleGroups?.join(', ')} Day</h3>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">{format(parseISO(workout.date), 'EEEE, MMMM do')}</p>
         </div>
         <div className="bg-[var(--color-brand-500)]/10 text-[var(--color-brand-500)] p-3 rounded-2xl shadow-inner z-10">
           <Dumbbell className="w-5 h-5 drop-shadow-[0_0_8px_rgba(236,72,153,0.5)]" />

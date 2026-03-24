@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { ActiveWorkout } from './pages/ActiveWorkout';
 import { Stats } from './pages/Stats';
 import { Routines } from './pages/Routines';
+import { Session } from './pages/Session';
 import { Settings } from './pages/Settings';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="stats" element={<Stats />} />
           <Route path="routines" element={<Routines />} />
+          <Route path="session" element={<Session />} />
           <Route path="settings" element={<Settings />} />
           <Route path="workout" element={<ActiveWorkout />} />
           <Route path="workout/:id" element={<ActiveWorkout />} />
