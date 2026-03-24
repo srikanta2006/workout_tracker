@@ -32,3 +32,25 @@ export interface BodyweightRecord {
   date: string; // yyyy-MM-dd format
   weight: number;
 }
+
+export interface Program {
+  id: string;
+  name: string;
+  lengthInDays: number; // e.g. 7 or 28
+  schedule: {
+    dayNumber: number; // 1 to lengthInDays
+    routineId: string | null; // null means rest day
+  }[];
+}
+
+export interface ActiveProgramState {
+  programId: string;
+  startDate: string; // ISO yyyy-MM-dd
+}
+
+export interface FitnessGoal {
+  id: string;
+  exerciseName: string;
+  targetWeight: number;
+  deadlineDate: string; // ISO yyyy-MM-dd
+}

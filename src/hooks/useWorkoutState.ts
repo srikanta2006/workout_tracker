@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { WorkoutSession, Routine, BodyweightRecord } from '../types';
+import type { WorkoutSession, Routine, BodyweightRecord, Program, ActiveProgramState, FitnessGoal } from '../types';
 
 export function useWorkoutState() {
   const [workouts, setWorkouts] = useState<WorkoutSession[]>(() => {
@@ -43,6 +43,30 @@ export function useWorkoutState() {
     return [];
   });
 
+  const [programs, setPrograms] = useState<Program[]>(() => {
+    const saved = localStorage.getItem('workout_tracker_programs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
+
+  const [activeProgram, setActiveProgram] = useState<ActiveProgramState | null>(() => {
+    const saved = localStorage.getItem('workout_tracker_active_program');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return null; }
+    }
+    return null;
+  });
+
+  const [goals, setGoals] = useState<FitnessGoal[]>(() => {
+    const saved = localStorage.getItem('workout_tracker_goals');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
+
   useEffect(() => {
     localStorage.setItem('workout_tracker_data', JSON.stringify(workouts));
   }, [workouts]);
@@ -58,6 +82,22 @@ export function useWorkoutState() {
   useEffect(() => {
     localStorage.setItem('workout_tracker_favorites', JSON.stringify(favoriteExercises));
   }, [favoriteExercises]);
+
+  useEffect(() => {
+    localStorage.setItem('workout_tracker_programs', JSON.stringify(programs));
+  }, [programs]);
+
+  useEffect(() => {
+    if (activeProgram) {
+      localStorage.setItem('workout_tracker_active_program', JSON.stringify(activeProgram));
+    } else {
+      localStorage.removeItem('workout_tracker_active_program');
+    }
+  }, [activeProgram]);
+
+  useEffect(() => {
+    localStorage.setItem('workout_tracker_goals', JSON.stringify(goals));
+  }, [goals]);
 
   const addWorkout = (workout: WorkoutSession) => {
     setWorkouts((prev) => [workout, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -101,10 +141,32 @@ export function useWorkoutState() {
     });
   };
 
+  const addProgram = (program: Program) => {
+    setPrograms((prev) => [...prev, program]);
+  };
+
+  const deleteProgram = (id: string) => {
+    setPrograms((prev) => prev.filter(p => p.id !== id));
+    if (activeProgram?.programId === id) {
+      setActiveProgram(null);
+    }
+  };
+
+  const addGoal = (goal: FitnessGoal) => {
+    setGoals((prev) => [...prev, goal]);
+  };
+
+  const deleteGoal = (id: string) => {
+    setGoals((prev) => prev.filter(g => g.id !== id));
+  };
+
   return { 
     workouts, addWorkout, updateWorkout, deleteWorkout, 
     routines, addRoutine, deleteRoutine,
     bodyweights, addBodyweight, deleteBodyweight,
-    favoriteExercises, toggleFavoriteExercise
+    favoriteExercises, toggleFavoriteExercise,
+    programs, addProgram, deleteProgram,
+    activeProgram, setActiveProgram,
+    goals, addGoal, deleteGoal
   };
 }

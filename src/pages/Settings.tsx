@@ -6,10 +6,14 @@ export function Settings() {
 
   const handleExport = () => {
     const data = {
-      version: '1.0',
+      version: '2.0',
       workouts: localStorage.getItem('workout_tracker_data'),
       routines: localStorage.getItem('workout_tracker_routines'),
-      bodyweights: localStorage.getItem('workout_tracker_bodyweights')
+      bodyweights: localStorage.getItem('workout_tracker_bodyweights'),
+      favorites: localStorage.getItem('workout_tracker_favorites'),
+      programs: localStorage.getItem('workout_tracker_programs'),
+      activeProgram: localStorage.getItem('workout_tracker_active_program'),
+      goals: localStorage.getItem('workout_tracker_goals')
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -37,6 +41,10 @@ export function Settings() {
           if (parsed.workouts) localStorage.setItem('workout_tracker_data', parsed.workouts);
           if (parsed.routines) localStorage.setItem('workout_tracker_routines', parsed.routines);
           if (parsed.bodyweights) localStorage.setItem('workout_tracker_bodyweights', parsed.bodyweights);
+          if (parsed.favorites) localStorage.setItem('workout_tracker_favorites', parsed.favorites);
+          if (parsed.programs) localStorage.setItem('workout_tracker_programs', parsed.programs);
+          if (parsed.activeProgram) localStorage.setItem('workout_tracker_active_program', parsed.activeProgram);
+          if (parsed.goals) localStorage.setItem('workout_tracker_goals', parsed.goals);
           
           setImportStatus('Data imported successfully! Reloading...');
           setTimeout(() => window.location.href = '/', 1500);
@@ -55,6 +63,10 @@ export function Settings() {
       localStorage.removeItem('workout_tracker_data');
       localStorage.removeItem('workout_tracker_routines');
       localStorage.removeItem('workout_tracker_bodyweights');
+      localStorage.removeItem('workout_tracker_favorites');
+      localStorage.removeItem('workout_tracker_programs');
+      localStorage.removeItem('workout_tracker_active_program');
+      localStorage.removeItem('workout_tracker_goals');
       window.location.href = '/';
     }
   };
