@@ -3,6 +3,7 @@ import { useWorkoutState } from '../hooks/useWorkoutState';
 import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Program } from '../types';
+import clsx from 'clsx';
 
 export function Routines() {
   const { routines, deleteRoutine, programs, addProgram, deleteProgram, activeProgram, setActiveProgram } = useWorkoutState();
@@ -108,8 +109,14 @@ export function Routines() {
               </div>
             ) : (
               <>
-                {routines.map(routine => (
-                  <div key={routine.id} className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-sm hover:border-[var(--color-brand-500)] transition-colors">
+                {routines.map((routine, index) => (
+                  <div 
+                    key={routine.id} 
+                    className={clsx(
+                      "animate-fade-in-up bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-sm hover:border-[var(--color-brand-500)] transition-colors",
+                      `stagger-${Math.min(index + 1, 5)}`
+                    )}
+                  >
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-[var(--color-text-main)]">{routine.name}</h3>
@@ -236,10 +243,17 @@ export function Routines() {
                   </div>
                 ) : (
                   <>
-                    {programs.map(program => {
+                    {programs.map((program, index) => {
                       const isActive = activeProgram?.programId === program.id;
                       return (
-                        <div key={program.id} className={`bg-[var(--color-bg-card)] border-2 rounded-xl p-4 shadow-sm transition-all ${isActive ? 'border-[var(--color-brand-500)] bg-[var(--color-brand-500)]/5 scale-[1.01]' : 'border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)]/50'}`}>
+                        <div 
+                          key={program.id} 
+                          className={clsx(
+                            "animate-fade-in-up bg-[var(--color-bg-card)] border-2 rounded-xl p-4 shadow-sm transition-all",
+                            isActive ? 'border-[var(--color-brand-500)] bg-[var(--color-brand-500)]/5 scale-[1.01]' : 'border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)]/50',
+                            `stagger-${Math.min(index + 1, 5)}`
+                          )}
+                        >
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <div className="flex items-center gap-2">

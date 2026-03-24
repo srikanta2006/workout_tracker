@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell, Calendar, Play } from 'lucide-react';
+import { LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell, Calendar, Play, Trophy } from 'lucide-react';
 import clsx from 'clsx';
+import { AchievementUnlockPopup } from './AchievementUnlockPopup';
 
 export function Layout() {
   const location = useLocation();
@@ -11,6 +12,7 @@ export function Layout() {
     { name: 'Planner', path: '/routines', icon: Calendar },
     { name: 'Session', path: '/session', icon: Play },
     { name: 'Measure', path: '/stats', icon: BarChart2 },
+    { name: 'Trophies', path: '/achievements', icon: Trophy },
     { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 
@@ -63,7 +65,9 @@ export function Layout() {
         </header>
 
         <div className="w-full max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-12 md:p-8">
-          <Outlet />
+          <div key={location.pathname} className="animate-fade-in-up">
+            <Outlet />
+          </div>
         </div>
       </main>
 
@@ -103,6 +107,7 @@ export function Layout() {
         </div>
       </nav>
 
+      <AchievementUnlockPopup />
     </div>
   );
 }

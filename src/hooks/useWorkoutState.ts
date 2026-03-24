@@ -6,13 +6,13 @@ export function useWorkoutState() {
     const saved = localStorage.getItem('workout_tracker_data');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((w: any) => ({
+        const parsed = JSON.parse(saved) as unknown[];
+        return parsed.map((w: unknown) => ({
           ...w,
-          muscleGroups: w.muscleGroups || (w.muscleGroup ? [w.muscleGroup] : ['Full Body'])
-        }));
-      } catch (e) {
-        console.error('Failed to parse workouts from local storage', e);
+          muscleGroups: (w as any).muscleGroups || ((w as any).muscleGroup ? [(w as any).muscleGroup] : ['Full Body'])
+        })) as WorkoutSession[];
+      } catch {
+        console.error('Failed to parse workouts from local storage');
         return [];
       }
     }
@@ -23,12 +23,12 @@ export function useWorkoutState() {
     const saved = localStorage.getItem('workout_tracker_routines');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((r: any) => ({
+        const parsed = JSON.parse(saved) as unknown[];
+        return parsed.map((r: unknown) => ({
           ...r,
-          muscleGroups: r.muscleGroups || (r.muscleGroup ? [r.muscleGroup] : ['Full Body'])
-        }));
-      } catch (e) {
+          muscleGroups: (r as any).muscleGroups || ((r as any).muscleGroup ? [(r as any).muscleGroup] : ['Full Body'])
+        })) as Routine[];
+      } catch {
         return [];
       }
     }
@@ -38,7 +38,7 @@ export function useWorkoutState() {
   const [bodyweights, setBodyweights] = useState<BodyweightRecord[]>(() => {
     const saved = localStorage.getItem('workout_tracker_bodyweights');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return []; }
+      try { return JSON.parse(saved) as BodyweightRecord[]; } catch { return []; }
     }
     return [];
   });
@@ -46,7 +46,7 @@ export function useWorkoutState() {
   const [favoriteExercises, setFavoriteExercises] = useState<string[]>(() => {
     const saved = localStorage.getItem('workout_tracker_favorites');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return []; }
+      try { return JSON.parse(saved) as string[]; } catch { return []; }
     }
     return [];
   });

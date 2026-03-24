@@ -5,6 +5,7 @@ import { WorkoutTimer } from '../components/WorkoutTimer';
 import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
 import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star } from 'lucide-react';
+import clsx from 'clsx';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
 
@@ -101,6 +102,28 @@ export function ActiveWorkout() {
     return { maxWeight, lastLiftStr, lastWorkoutDate: lastWorkoutDate.getTime() > 0 ? lastWorkoutDate : null };
   };
 
+  /** Returns { weight, reps } for the same set-number in the most recent previous session */
+  const getPreviousSetData = (exerciseName: string, setNumber: number): { weight: number; reps: number } | null => {
+    if (!exerciseName.trim()) return null;
+    const name = exerciseName.toLowerCase().trim();
+    let bestDate = new Date(0);
+    let result: { weight: number; reps: number } | null = null;
+    workouts.forEach(w => {
+      if (existingWorkout && w.id === existingWorkout.id) return;
+      const wDate = new Date(w.date);
+      if (wDate <= bestDate) return;
+      w.exercises.forEach(ex => {
+        if (ex.name.toLowerCase().trim() !== name) return;
+        const matchSet = ex.sets.find(s => s.setNumber === setNumber);
+        if (matchSet) {
+          bestDate = wDate;
+          result = { weight: Number(matchSet.weight) || 0, reps: Number(matchSet.reps) || 0 };
+        }
+      });
+    });
+    return result;
+  };
+
   const handleAddExercise = (defaultName: string = '') => {
     setExercises([...exercises, { 
       id: crypto.randomUUID(), 
@@ -164,6 +187,9 @@ export function ActiveWorkout() {
 
       // Auto-save logic ONLY if ticking a set to true in a real workout
       if (field === 'completed' && value === true && !isTemplateMode) {
+        // Trigger Auto-Rest Event
+        window.dispatchEvent(new CustomEvent('trigger-rest', { detail: { seconds: 90 } }));
+
         if (existingWorkout) {
           updateWorkout(existingWorkout.id, { id: existingWorkout.id, date, muscleGroups, exercises: updated });
         } else if (updated.some(ex => ex.name.trim())) {
@@ -328,7 +354,7 @@ export function ActiveWorkout() {
           const isFavorite = favoriteExercises.includes(exercise.name);
 
           return (
-            <div key={exercise.id} className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-sm relative pt-10">
+            <div key={exercise.id} className={clsx("bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-sm relative pt-10 animate-fade-in-up", `stagger-${Math.min(idx + 1, 5)}`)}>
               <span className="absolute top-0 left-0 bg-[var(--color-brand-500)] text-white text-xs font-bold px-3 py-1 rounded-tl-xl rounded-br-lg">
                 Exercise {idx + 1}
               </span>
@@ -400,9 +426,15 @@ export function ActiveWorkout() {
                 {exercise.sets.map((set) => {
                   const setWeight = Number(set.weight) || 0;
                   const isNewPR = history?.maxWeight ? setWeight > history.maxWeight : false;
+                  const prevSet = !isTemplateMode ? getPreviousSetData(exercise.name, set.setNumber) : null;
+                  const weightDelta = prevSet && setWeight > 0 ? setWeight - prevSet.weight : null;
+                  const repsDelta = prevSet && Number(set.reps) > 0 ? (Number(set.reps) || 0) - prevSet.reps : null;
 
                   return (
-                    <div key={set.id} className={`grid grid-cols-12 gap-2 items-center bg-[var(--color-bg-base)] rounded-lg p-2 relative transition-all ${set.completed ? 'opacity-50 grayscale' : ''}`}>
+                    <div key={set.id} className={clsx(
+                      "grid grid-cols-12 gap-2 items-center bg-[var(--color-bg-base)] rounded-lg p-2 relative transition-all",
+                      set.completed ? "opacity-50 grayscale animate-success-flash" : "animate-slide-in"
+                    )}>
                       {isNewPR && (
                         <div className="absolute -left-2 top-1/2 -translate-y-1/2 bg-yellow-400 text-yellow-900 text-[8px] font-bold px-1 rounded shadow-sm rotate-[-15deg]">
                           NEW PR!
@@ -422,8 +454,14 @@ export function ActiveWorkout() {
                           onChange={(e) => handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)}
                           className={`w-full bg-transparent text-center font-bold outline-none ${isNewPR ? 'text-yellow-600 dark:text-yellow-400' : 'text-[var(--color-text-main)]'} ${set.completed ? 'line-through' : ''}`}
                         />
+                        {weightDelta !== null && !set.completed && (
+                          <span className={`absolute -top-2.5 right-0 text-[9px] font-bold 
+                            ${weightDelta > 0 ? 'text-green-400' : weightDelta < 0 ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
+                            {weightDelta > 0 ? `▲${weightDelta}` : weightDelta < 0 ? `▼${Math.abs(weightDelta)}` : '='} kg
+                          </span>
+                        )}
                       </div>
-                      <div className="col-span-4">
+                      <div className="col-span-4 relative">
                         <input 
                           type="number" 
                           inputMode="numeric"
@@ -432,6 +470,12 @@ export function ActiveWorkout() {
                           onChange={(e) => handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)}
                           className={`w-full bg-transparent text-center font-bold outline-none text-[var(--color-text-main)] ${set.completed ? 'line-through' : ''}`}
                         />
+                        {repsDelta !== null && !set.completed && (
+                          <span className={`absolute -top-2.5 right-0 text-[9px] font-bold 
+                            ${repsDelta > 0 ? 'text-green-400' : repsDelta < 0 ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
+                            {repsDelta > 0 ? `▲${repsDelta}` : repsDelta < 0 ? `▼${Math.abs(repsDelta)}` : '='} reps
+                          </span>
+                        )}
                       </div>
                       <div className="col-span-2 flex justify-center gap-2">
                         {!isTemplateMode && (
@@ -467,7 +511,7 @@ export function ActiveWorkout() {
 
         <button 
           onClick={() => handleAddExercise('')}
-          className="w-full py-4 border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/5 transition-colors flex justify-center items-center gap-2"
+          className="w-full py-4 border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/5 transition-all flex justify-center items-center gap-2 animate-scale-spring"
         >
           <Plus className="w-5 h-5" /> Add Exercise
         </button>

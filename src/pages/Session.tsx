@@ -17,7 +17,7 @@ export function Session() {
     const start = startOfDay(new Date(activeProgram.startDate));
     const daysPassed = Math.max(0, differenceInDays(today, start));
     currentCycleDay = (daysPassed % activeProg.lengthInDays) + 1;
-    
+
     const currentDaySchedule = activeProg.schedule.find(s => s.dayNumber === currentCycleDay);
     if (currentDaySchedule && currentDaySchedule.routineId) {
       routineToPerform = routines.find(r => r.id === currentDaySchedule.routineId);
@@ -34,13 +34,13 @@ export function Session() {
       </div>
 
       <div className="flex-1 w-full max-w-2xl mx-auto flex flex-col gap-6">
-        
+
         {/* Pathway 1: Active Routine */}
-        <div className="bg-gradient-to-br from-[var(--color-bg-card)] to-[#1a1a1c] border border-[var(--color-border-subtle)] rounded-3xl p-6 shadow-sm relative overflow-hidden">
+        <div className="animate-scale-spring bg-gradient-to-br from-[var(--color-bg-card)] to-[#1a1a1c] border border-[var(--color-border-subtle)] rounded-3xl p-6 shadow-sm relative overflow-hidden">
           <div className="absolute -top-10 -right-10 p-4 opacity-5 transform rotate-12 pointer-events-none">
             <Calendar className="w-48 h-48 text-white" />
           </div>
-          
+
           <div className="relative z-10 mb-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--color-brand-500)] mb-1">
               Active Routine
@@ -58,27 +58,27 @@ export function Session() {
 
           <div className="relative z-10">
             {activeProg ? (
-               routineToPerform ? (
-                 <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-2xl p-4 flex flex-col gap-4 shadow-inner">
-                   <div>
-                     <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Today's Template</p>
-                     <p className="text-lg font-bold line-clamp-1">{routineToPerform.name}</p>
-                   </div>
-                   <button 
-                     onClick={() => navigate(`/workout?routineId=${routineToPerform?.id}`)}
-                     className="w-full bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] py-4 rounded-xl font-bold text-lg shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                   >
-                     <Play className="w-5 h-5 fill-current" /> Follow Routine
-                   </button>
-                 </div>
-               ) : (
-                 <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2">
-                   <p className="text-lg font-bold text-[var(--color-text-muted)]">Rest Day Scheduled</p>
-                   <p className="text-sm text-[var(--color-text-muted)]">Take the day off, or bypass below.</p>
-                 </div>
-               )
+              routineToPerform ? (
+                <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-2xl p-4 flex flex-col gap-4 shadow-inner">
+                  <div>
+                    <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Today's Template</p>
+                    <p className="text-lg font-bold line-clamp-1">{routineToPerform.name}</p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/workout?routineId=${routineToPerform?.id}`)}
+                    className="w-full bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] py-4 rounded-xl font-bold text-lg shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-5 h-5 fill-current" /> Follow Routine
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2">
+                  <p className="text-lg font-bold text-[var(--color-text-muted)]">Rest Day Scheduled</p>
+                  <p className="text-sm text-[var(--color-text-muted)]">Take the day off, or bypass below.</p>
+                </div>
+              )
             ) : (
-              <button 
+              <button
                 onClick={() => navigate('/routines')}
                 className="w-full border-2 border-dashed border-[var(--color-brand-500)]/50 text-[var(--color-brand-500)] bg-[var(--color-brand-500)]/5 hover:bg-[var(--color-brand-500)]/10 py-4 rounded-xl font-bold text-lg transition-all active:scale-[0.98]"
               >
@@ -96,9 +96,9 @@ export function Session() {
         </div>
 
         {/* Pathway 2: Freestyle */}
-        <button 
+        <button
           onClick={() => navigate('/workout')}
-          className="bg-[var(--color-bg-card)] border-2 border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)]/50 rounded-3xl p-6 flex items-center gap-4 group transition-all active:scale-[0.98]"
+          className="animate-fade-in-up stagger-1 bg-[var(--color-bg-card)] border-2 border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)]/50 rounded-3xl p-6 flex items-center gap-4 group transition-all active:scale-[0.98]"
         >
           <div className="bg-[var(--color-bg-base)] p-4 rounded-full group-hover:bg-[var(--color-brand-500)]/10 transition-colors">
             <Shuffle className="w-6 h-6 text-[var(--color-text-muted)] group-hover:text-[var(--color-brand-500)] transition-colors" />

@@ -28,6 +28,16 @@ export function WorkoutTimer() {
     return () => clearInterval(interval);
   }, [restTimeLeft]);
 
+  // Global Listeners for Auto-Rest
+  useEffect(() => {
+    const handleAutoRest = (e: any) => {
+      const seconds = e.detail?.seconds || 90;
+      setRestTimeLeft(seconds);
+    };
+    window.addEventListener('trigger-rest', handleAutoRest);
+    return () => window.removeEventListener('trigger-rest', handleAutoRest);
+  }, []);
+
   // Helpers
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -111,8 +121,8 @@ export function WorkoutTimer() {
           )}
 
           <div className="flex items-center gap-3 z-10 w-full">
-            <Timer className={clsx("w-5 h-5", restFinished ? "text-green-500" : "text-[var(--color-brand-500)] animate-pulse")} />
-            <span className={clsx("font-bold text-lg font-mono tracking-tight", restFinished ? "text-green-600 dark:text-green-400" : "text-[var(--color-brand-600)]")}>
+            <Timer className={clsx("w-5 h-5", restFinished ? "text-green-500" : "text-[var(--color-brand-500)] animate-subtle-pulse")} />
+            <span className={clsx("font-bold text-lg font-mono tracking-tight", restFinished ? "text-green-600 dark:text-green-400" : "text-[var(--color-brand-600)] animate-subtle-pulse")}>
               {restFinished ? "Ready to Lift!" : formatTime(restTimeLeft)}
             </span>
             

@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
 import { EXERCISE_DATABASE } from '../data/exercises';
-import { format, parseISO, subDays, isAfter } from 'date-fns';
-import { TrendingUp, Target, Plus, Trash2, Crosshair, Scale } from 'lucide-react';
+import { format, parseISO, subDays, isAfter, eachDayOfInterval, startOfDay } from 'date-fns';
+import { TrendingUp, Target, Plus, Trash2, Crosshair, Scale, BarChart2, Medal } from 'lucide-react';
+import { StreakCalendar } from '../components/StreakCalendar';
+import { MuscleHeatmap } from '../components/MuscleHeatmap';
 
 export function Stats() {
   const { workouts, bodyweights, addBodyweight, deleteBodyweight, goals, addGoal, deleteGoal } = useWorkoutState();
@@ -153,6 +155,43 @@ export function Stats() {
     return max;
   };
 
+  // --- 6. VOLUME TREND (30-day daily) ---
+  const volumeTrendData = useMemo(() => {
+    const today = startOfDay(new Date());
+    const start = subDays(today, 29);
+    const days = eachDayOfInterval({ start, end: today });
+    const byDay: Record<string, number> = {};
+    workouts.forEach(w => {
+      const key = w.date.slice(0, 10);
+      const vol = w.exercises.reduce((t, e) =>
+        t + e.sets.reduce((st, s) => st + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0), 0);
+      byDay[key] = (byDay[key] || 0) + Math.round(vol);
+    });
+    return days.map(d => ({
+      date: format(d, 'MMM d'),
+      volume: byDay[format(d, 'yyyy-MM-dd')] || 0,
+    }));
+  }, [workouts]);
+
+  // --- 7. PR TIMELINE (per exercise, only new all-time high per session) ---
+  const [prExercise, setPrExercise] = useState<string>(() => performedExerciseNames[0] || '');
+  const prTimelineData = useMemo(() => {
+    if (!prExercise) return [];
+    const out: { date: string; weight: number }[] = [];
+    const sorted = [...workouts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let running = 0;
+    sorted.forEach(w => {
+      const exs = w.exercises.filter(e => e.name === prExercise);
+      if (exs.length === 0) return;
+      const maxW = Math.max(0, ...exs.flatMap(e => e.sets.map(s => Number(s.weight) || 0)));
+      if (maxW > running) {
+        running = maxW;
+        out.push({ date: format(parseISO(w.date), 'MMM d'), weight: maxW });
+      }
+    });
+    return out;
+  }, [workouts, prExercise]);
+
   return (
     <div className="w-full h-full flex flex-col pb-8">
       <div className="mb-6 px-1">
@@ -163,9 +202,8 @@ export function Stats() {
       </div>
 
       <div className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-
         {/* --- GOALS WIDGET --- */}
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm">
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-scale-spring">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <Crosshair className="w-5 h-5 text-red-500" /> Macrocyle Targets
@@ -238,7 +276,7 @@ export function Stats() {
         </div>
 
         {/* --- 1RM FORECASTER --- */}
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm">
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-scale-spring stagger-1">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-500" /> 1RM Forecaster
@@ -280,7 +318,7 @@ export function Stats() {
         </div>
 
         {/* --- VOLUME RADAR --- */}
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm">
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-scale-spring stagger-2">
           <h3 className="text-lg font-bold flex items-center gap-2 mb-1">
             <Target className="w-5 h-5 text-purple-500" /> Physique Radar
           </h3>
@@ -303,7 +341,7 @@ export function Stats() {
         </div>
 
         {/* --- BODYWEIGHT TREND --- */}
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm">
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-scale-spring stagger-3">
           <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
             <Scale className="w-5 h-5 text-emerald-500" /> Bodyweight Trend
           </h3>
@@ -371,6 +409,86 @@ export function Stats() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* --- VOLUME TREND --- */}
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-fade-in-up stagger-3 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart2 className="w-5 h-5 text-[var(--color-brand-500)]" />
+            <h3 className="text-lg font-bold">Volume Trend</h3>
+            <span className="ml-auto text-xs text-[var(--color-text-muted)]">Last 30 days · kg moved per day</span>
+          </div>
+          <div className="h-[160px] w-full mt-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={volumeTrendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-brand-500)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--color-brand-500)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} />
+                <XAxis dataKey="date" stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} interval={6} />
+                <YAxis stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}
+                  formatter={(v: any) => [`${v.toLocaleString()} kg`, 'Volume']}
+                  labelStyle={{ color: 'var(--color-text-muted)' }}
+                />
+                <Area type="monotone" dataKey="volume" stroke="var(--color-brand-500)" strokeWidth={2} fill="url(#volGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* --- PR TIMELINE --- */}
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-fade-in-up stagger-4">
+          <div className="flex justify-between items-center mb-1">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Medal className="w-5 h-5 text-amber-400" /> PR Timeline
+            </h3>
+            {performedExerciseNames.length > 0 && (
+              <select
+                value={prExercise}
+                onChange={e => setPrExercise(e.target.value)}
+                className="bg-[var(--color-bg-base)] text-xs font-bold text-[var(--color-brand-600)] p-1.5 rounded outline-none max-w-[130px] truncate border border-[var(--color-brand-500)]/30"
+              >
+                {performedExerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            )}
+          </div>
+          <p className="text-xs text-[var(--color-text-muted)] mb-3">All-time personal record breakpoints per session.</p>
+          <div className="h-[180px]">
+            {prTimelineData.length < 2 ? (
+              <div className="h-full flex items-center justify-center text-sm text-[var(--color-text-muted)] border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl text-center px-4">
+                Log {prExercise} in at least 2 sessions to see your PR curve.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={prTimelineData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} />
+                  <XAxis dataKey="date" stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}
+                    formatter={(v: any) => [`${v} kg`, 'PR Weight']}
+                    labelStyle={{ color: 'var(--color-text-muted)' }}
+                  />
+                  <Line type="stepAfter" dataKey="weight" stroke="#f59e0b" strokeWidth={3}
+                    dot={{ fill: '#f59e0b', strokeWidth: 2, r: 5, strokeDasharray: '' }}
+                    activeDot={{ r: 7 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* --- MUSCLE HEATMAP --- */}
+        <MuscleHeatmap />
+
+        {/* --- STREAK CALENDAR --- */}
+        <div className="lg:col-span-2">
+          <StreakCalendar />
         </div>
 
       </div>
