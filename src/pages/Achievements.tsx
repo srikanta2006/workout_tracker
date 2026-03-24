@@ -13,7 +13,7 @@ function getBarColor(progress: number): string {
   return 'from-[var(--color-brand-500)] to-blue-500';
 }
 
-export function Achievements() {
+export default function Achievements() {
   const { workouts } = useWorkoutState();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | 'All'>('All');
   const [showAll, setShowAll] = useState(false);

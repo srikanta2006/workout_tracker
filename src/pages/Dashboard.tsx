@@ -4,12 +4,12 @@ import { WorkoutCard } from '../components/WorkoutCard';
 import { RecoveryWidget } from '../components/RecoveryWidget';
 import { Dumbbell, Calendar, Play, Moon, Trophy, Zap, ChevronRight, Share2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { differenceInDays, startOfDay } from 'date-fns';
+import { differenceInDays, startOfDay, format, parseISO } from 'date-fns';
 import clsx from 'clsx';
 import { computeAchievements } from '../data/achievements';
 import { ShareCard } from '../components/ShareCard';
 
-export function Dashboard() {
+export default function Dashboard() {
   const { workouts, deleteWorkout, activeProgram, programs, routines } = useWorkoutState();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [shareWorkoutId, setShareWorkoutId] = useState<string | null>(null);
@@ -83,56 +83,63 @@ export function Dashboard() {
     <div className="w-full h-full flex flex-col gap-8 pb-8">
 
       {/* --- GAMIFICATION STRIP --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* XP / Level bar */}
-        <div className="animate-scale-spring bg-gradient-to-br from-[var(--color-brand-500)]/20 to-[var(--color-bg-card)] border border-[var(--color-brand-500)]/30 rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[var(--color-brand-500)]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand-500)]">Strength Level</span>
+        <div className="lg:col-span-2 animate-scale-spring glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover transition-all duration-500">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-[var(--color-brand-500)]/20 to-[var(--color-brand-500)]/10 backdrop-blur-sm border border-[var(--color-brand-500)]/20 p-2 rounded-xl">
+                <Zap className="w-5 h-5 text-[var(--color-brand-500)]" />
+              </div>
+              <span className="text-sm font-bold uppercase tracking-wider text-[var(--color-brand-500)]">Strength Level</span>
             </div>
-            <span className="text-xs font-bold text-[var(--color-text-muted)]">{Math.round(lifetimeVolume).toLocaleString()} kg total</span>
+            <span className="text-sm font-bold text-[var(--color-text-muted)]">{Math.round(lifetimeVolume).toLocaleString()} kg total</span>
           </div>
-          <div className="flex items-end gap-3 mb-2">
-            <span className="text-4xl font-black text-[var(--color-text-main)]">{level}</span>
-            <span className="text-sm font-bold text-[var(--color-text-muted)] pb-1">{displayRank}</span>
+          <div className="flex items-end gap-4 mb-4">
+            <span className="text-5xl font-black text-[var(--color-text-main)] bg-gradient-to-br from-[var(--color-brand-500)] to-blue-500 bg-clip-text text-transparent">
+              {level}
+            </span>
+            <span className="text-lg font-bold text-[var(--color-text-muted)] pb-2">{displayRank}</span>
           </div>
-          <div className="h-2 bg-[var(--color-bg-base)] rounded-full overflow-hidden">
+          <div className="h-3 bg-[var(--color-bg-base)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-[var(--color-brand-500)] to-blue-400 rounded-full transition-all duration-700"
+              className="h-full bg-gradient-to-r from-[var(--color-brand-500)] via-[var(--color-brand-500)] to-blue-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
               style={{ width: `${xpPercent}%` }}
             />
           </div>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-1">{Math.round(XP_PER_LEVEL - xpIntoLevel).toLocaleString()} kg to Level {level + 1}</p>
+          <p className="text-xs font-bold text-[var(--color-text-muted)] mt-3">{Math.round(XP_PER_LEVEL - xpIntoLevel).toLocaleString()} kg to Level {level + 1}</p>
         </div>
 
         {/* Next Achievement Teaser */}
         {approachingAchievement ? (
-          <Link to="/achievements" className="animate-scale-spring stagger-1 bg-[var(--color-bg-card)] border border-amber-500/30 rounded-2xl p-4 flex items-center gap-4 hover:border-amber-400/60 transition-all group">
-            <span className="text-4xl">{approachingAchievement.icon}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Next Trophy</span>
+          <Link to="/achievements" className="group animate-scale-spring glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:border-amber-400/50 transition-all duration-500 flex flex-col justify-between">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl group-hover:scale-110 transition-transform duration-300">{approachingAchievement.icon}</span>
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Next Trophy</span>
               </div>
-              <p className="font-bold text-sm text-[var(--color-text-main)] truncate">{approachingAchievement.name}</p>
-              <div className="h-1.5 bg-[var(--color-bg-base)] rounded-full overflow-hidden mt-2">
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-lg text-[var(--color-text-main)] mb-2 group-hover:text-amber-400 transition-colors duration-300">{approachingAchievement.name}</p>
+              <div className="h-2 bg-[var(--color-bg-base)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 rounded-full overflow-hidden mb-3">
                 <div
-                  className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full transition-all duration-700 shadow-sm"
                   style={{ width: `${approachingAchievement.progress * 100}%` }}
                 />
               </div>
-              <p className="text-[11px] text-[var(--color-text-muted)] mt-1">{Math.round(approachingAchievement.progress * 100)}% complete</p>
+              <p className="text-sm text-[var(--color-text-muted)] font-medium">{Math.round(approachingAchievement.progress * 100)}% complete</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-amber-400 transition-colors flex-shrink-0" />
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--color-border-subtle)]/30">
+              <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">View All</span>
+              <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-amber-400 group-hover:translate-x-1 transition-all duration-300" />
+            </div>
           </Link>
         ) : (
-          <Link to="/achievements" className="animate-scale-spring stagger-1 bg-[var(--color-bg-card)] border border-amber-500/30 rounded-2xl p-4 flex items-center gap-4 hover:border-amber-400/60 transition-all">
-            <Trophy className="w-10 h-10 text-amber-400" />
-            <div>
-              <p className="font-bold text-[var(--color-text-main)]">View Trophies</p>
-              <p className="text-sm text-[var(--color-text-muted)]">Check all your earned achievements.</p>
-            </div>
+          <Link to="/achievements" className="group animate-scale-spring glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:border-amber-400/50 transition-all duration-500 flex flex-col justify-center items-center text-center">
+            <Trophy className="w-12 h-12 text-amber-400 mb-4 group-hover:scale-110 transition-transform duration-300" />
+            <p className="font-bold text-xl text-[var(--color-text-main)] mb-2 group-hover:text-amber-400 transition-colors duration-300">View Trophies</p>
+            <p className="text-sm text-[var(--color-text-muted)] font-medium">Check all your earned achievements.</p>
           </Link>
         )}
       </div>
@@ -186,72 +193,157 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* --- BOTTOM ROW: HISTORY GRID --- */}
-      <div>
-        <div className="mb-4 flex flex-col items-start w-full">
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Recent Workouts</h2>
-          <p className="text-sm font-medium text-[var(--color-text-muted)] mt-1">
-            {workouts.length} lifetime {workouts.length === 1 ? 'session' : 'sessions'}
+      {/* --- BOTTOM ROW: RECENT WORKOUTS LIST --- */}
+      <div className="animate-scale-spring">
+        <div className="mb-6 flex flex-col items-start w-full">
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--color-text-main)] bg-gradient-to-r from-[var(--color-text-main)] to-[var(--color-text-muted)] bg-clip-text text-transparent">
+            Recent Workouts
+          </h2>
+          <p className="text-sm font-medium text-[var(--color-text-muted)] mt-2">
+            {workouts.length} lifetime {workouts.length === 1 ? 'session' : 'sessions'} • Keep pushing forward
           </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
-          {workouts.map((workout, index) => (
-            <div 
-              key={workout.id} 
-              className={clsx("animate-fade-in-up", `stagger-${Math.min(index + 2, 5)}`)}
-            >
-              <WorkoutCard
-                workout={workout}
-                onClick={() => setSelectedWorkoutId(selectedWorkoutId === workout.id ? null : workout.id)}
-              />
-              {selectedWorkoutId === workout.id && (
-                <div className="bg-[var(--color-bg-card)] p-4 rounded-xl border border-[var(--color-border-subtle)] mb-4 -mt-2 shadow-inner">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-[var(--color-text-main)]">Workout Details</h4>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShareWorkoutId(workout.id)}
-                        className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-3 py-1 rounded-lg border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors flex items-center gap-1"
-                      >
-                        <Share2 className="w-3.5 h-3.5" /> Share
-                      </button>
-                      <Link
-                        to={`/workout/${workout.id}`}
-                        className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-3 py-1 rounded-lg border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors"
-                      >
-                        Edit
-                      </Link>
-                      <button 
-                        onClick={() => deleteWorkout(workout.id)}
-                        className="text-red-500 hover:text-white text-sm font-medium px-3 py-1 rounded-lg border border-[var(--color-border-subtle)] hover:border-red-500 hover:bg-red-500 transition-colors"
-                      >
-                        Delete
-                      </button>
+
+        <div className="glass-card rounded-3xl p-6 shadow-premium">
+          <div className="space-y-3">
+            {workouts.slice(0, 10).map((workout, index) => {
+              const totalVolume = workout.exercises.reduce((acc, ex) => {
+                const exVolume = ex.sets.reduce((setAcc, set) => setAcc + ((Number(set.reps) || 0) * (Number(set.weight) || 0)), 0);
+                return acc + exVolume;
+              }, 0);
+
+              return (
+                <div
+                  key={workout.id}
+                  className={clsx(
+                    "group flex items-center justify-between p-4 rounded-2xl border border-[var(--color-border-subtle)]/30 hover:border-[var(--color-brand-500)]/30 bg-[var(--color-bg-base)]/30 hover:bg-[var(--color-bg-base)]/50 transition-all duration-300 cursor-pointer animate-fade-in-up",
+                    `stagger-${Math.min(index + 2, 5)}`
+                  )}
+                  onClick={() => setSelectedWorkoutId(selectedWorkoutId === workout.id ? null : workout.id)}
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[var(--color-brand-500)]/20 to-[var(--color-brand-500)]/10 backdrop-blur-sm border border-[var(--color-brand-500)]/20 rounded-xl flex items-center justify-center">
+                        <Dumbbell className="w-5 h-5 text-[var(--color-brand-500)]" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand-500)] transition-colors duration-300 truncate">
+                          {workout.muscleGroups?.join(', ')} Day
+                        </h3>
+                        <span className="text-xs text-[var(--color-text-muted)] font-medium whitespace-nowrap">
+                          {format(parseISO(workout.date), 'MMM d')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
+                        <span className="flex items-center gap-1">
+                          <span className="font-semibold text-[var(--color-text-main)]">{workout.exercises.length}</span>
+                          exercises
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="font-semibold text-[var(--color-text-main)]">{totalVolume.toLocaleString()}</span>
+                          kg volume
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  {workout.exercises.map((ex, idx) => (
-                    <div key={ex.id} className="mb-4 last:mb-0">
-                      <p className="font-medium text-sm text-[var(--color-text-main)] mb-2">{idx + 1}. {ex.name}</p>
-                      <div className="grid grid-cols-3 gap-2 text-xs text-[var(--color-text-muted)] mb-1 px-2 border-b border-[var(--color-border-subtle)] pb-1">
-                        <span>Set</span>
-                        <span className="text-center">kg</span>
-                        <span className="text-right">Reps</span>
-                      </div>
-                      {ex.sets.map(set => (
-                        <div key={set.id} className="grid grid-cols-3 gap-2 text-sm px-2 py-1 bg-[--color-bg-base] rounded mb-1 text-[var(--color-text-main)]">
-                          <span className="text-[var(--color-text-muted)]">{set.setNumber}</span>
-                          <span className="font-medium text-center">{set.weight || '-'}</span>
-                          <span className="font-medium text-right">{set.reps || '-'}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShareWorkoutId(workout.id);
+                      }}
+                      className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] transition-colors rounded-lg hover:bg-[var(--color-brand-500)]/10"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <Link
+                      to={`/workout/${workout.id}`}
+                      className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] transition-colors rounded-lg hover:bg-[var(--color-brand-500)]/10"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+
+          {workouts.length === 0 && (
+            <div className="text-center py-12">
+              <Dumbbell className="w-16 h-16 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
+              <p className="text-lg font-medium text-[var(--color-text-muted)]">No workouts yet</p>
+              <p className="text-sm text-[var(--color-text-muted)]/70 mt-1">Start your fitness journey today!</p>
             </div>
-          ))}
+          )}
         </div>
+
+        {/* Expanded workout details */}
+        {selectedWorkoutId && (() => {
+          const workout = workouts.find(w => w.id === selectedWorkoutId);
+          if (!workout) return null;
+
+          return (
+            <div className="glass-card rounded-3xl p-6 shadow-premium mt-4 animate-scale-spring">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-[var(--color-text-main)]">
+                    {workout.muscleGroups?.join(', ')} Day Details
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-muted)] mt-1">
+                    {format(parseISO(workout.date), 'EEEE, MMMM do, yyyy')}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShareWorkoutId(workout.id)}
+                    className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-4 py-2 rounded-xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors flex items-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" /> Share
+                  </button>
+                  <Link
+                    to={`/workout/${workout.id}`}
+                    className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-4 py-2 rounded-xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => deleteWorkout(workout.id)}
+                    className="text-red-500 hover:text-white text-sm font-medium px-4 py-2 rounded-xl border border-[var(--color-border-subtle)] hover:border-red-500 hover:bg-red-500 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {workout.exercises.map((ex, idx) => (
+                  <div key={ex.id} className="bg-[var(--color-bg-base)]/50 rounded-2xl p-4 border border-[var(--color-border-subtle)]/30">
+                    <p className="font-semibold text-[var(--color-text-main)] mb-3">{idx + 1}. {ex.name}</p>
+                    <div className="grid grid-cols-4 gap-2 text-xs text-[var(--color-text-muted)] mb-2 px-2">
+                      <span>Set</span>
+                      <span>kg</span>
+                      <span>Reps</span>
+                      <span className="text-right">Volume</span>
+                    </div>
+                    {ex.sets.map(set => {
+                      const setVolume = (Number(set.weight) || 0) * (Number(set.reps) || 0);
+                      return (
+                        <div key={set.id} className="grid grid-cols-4 gap-2 text-sm px-2 py-2 bg-[var(--color-bg-base)] rounded-lg mb-1 text-[var(--color-text-main)]">
+                          <span className="text-[var(--color-text-muted)]">{set.setNumber}</span>
+                          <span className="font-medium">{set.weight || '-'}</span>
+                          <span className="font-medium">{set.reps || '-'}</span>
+                          <span className="font-medium text-right text-[var(--color-brand-500)]">{setVolume || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Share Card Modal */}

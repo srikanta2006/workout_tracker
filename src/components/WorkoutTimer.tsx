@@ -30,12 +30,12 @@ export function WorkoutTimer() {
 
   // Global Listeners for Auto-Rest
   useEffect(() => {
-    const handleAutoRest = (e: any) => {
+    const handleAutoRest = (e: CustomEvent) => {
       const seconds = e.detail?.seconds || 90;
       setRestTimeLeft(seconds);
     };
-    window.addEventListener('trigger-rest', handleAutoRest);
-    return () => window.removeEventListener('trigger-rest', handleAutoRest);
+    window.addEventListener('trigger-rest', handleAutoRest as EventListener);
+    return () => window.removeEventListener('trigger-rest', handleAutoRest as EventListener);
   }, []);
 
   // Helpers

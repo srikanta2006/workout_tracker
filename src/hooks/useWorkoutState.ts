@@ -1,15 +1,32 @@
 import { useState, useEffect } from 'react';
 import type { WorkoutSession, Routine, BodyweightRecord, Program, ActiveProgramState, FitnessGoal } from '../types';
 
+// Raw stored data types (for migration)
+interface RawWorkoutSession {
+  id: string;
+  date: string;
+  muscleGroups?: string[];
+  muscleGroup?: string; // old format
+  exercises: unknown[];
+}
+
+interface RawRoutine {
+  id: string;
+  name: string;
+  muscleGroups?: string[];
+  muscleGroup?: string; // old format
+  exercises: unknown[];
+}
+
 export function useWorkoutState() {
   const [workouts, setWorkouts] = useState<WorkoutSession[]>(() => {
     const saved = localStorage.getItem('workout_tracker_data');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as unknown[];
-        return parsed.map((w: unknown) => ({
+        const parsed = JSON.parse(saved) as RawWorkoutSession[];
+        return parsed.map((w) => ({
           ...w,
-          muscleGroups: (w as any).muscleGroups || ((w as any).muscleGroup ? [(w as any).muscleGroup] : ['Full Body'])
+          muscleGroups: w.muscleGroups || (w.muscleGroup ? [w.muscleGroup] : ['Full Body'])
         })) as WorkoutSession[];
       } catch {
         console.error('Failed to parse workouts from local storage');
@@ -23,10 +40,10 @@ export function useWorkoutState() {
     const saved = localStorage.getItem('workout_tracker_routines');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as unknown[];
-        return parsed.map((r: unknown) => ({
+        const parsed = JSON.parse(saved) as RawRoutine[];
+        return parsed.map((r) => ({
           ...r,
-          muscleGroups: (r as any).muscleGroups || ((r as any).muscleGroup ? [(r as any).muscleGroup] : ['Full Body'])
+          muscleGroups: r.muscleGroups || (r.muscleGroup ? [r.muscleGroup] : ['Full Body'])
         })) as Routine[];
       } catch {
         return [];
@@ -54,7 +71,7 @@ export function useWorkoutState() {
   const [programs, setPrograms] = useState<Program[]>(() => {
     const saved = localStorage.getItem('workout_tracker_programs');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return []; }
+      try { return JSON.parse(saved) as Program[]; } catch { return []; }
     }
     return [];
   });
@@ -62,7 +79,7 @@ export function useWorkoutState() {
   const [activeProgram, setActiveProgram] = useState<ActiveProgramState | null>(() => {
     const saved = localStorage.getItem('workout_tracker_active_program');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return null; }
+      try { return JSON.parse(saved) as ActiveProgramState; } catch { return null; }
     }
     return null;
   });
@@ -70,7 +87,7 @@ export function useWorkoutState() {
   const [goals, setGoals] = useState<FitnessGoal[]>(() => {
     const saved = localStorage.getItem('workout_tracker_goals');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return []; }
+      try { return JSON.parse(saved) as FitnessGoal[]; } catch { return []; }
     }
     return [];
   });

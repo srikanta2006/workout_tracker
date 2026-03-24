@@ -3,7 +3,7 @@ import { Play, Shuffle, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInDays, startOfDay } from 'date-fns';
 
-export function Session() {
+export default function Session() {
   const { activeProgram, programs, routines } = useWorkoutState();
   const navigate = useNavigate();
 

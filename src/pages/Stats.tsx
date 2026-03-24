@@ -7,7 +7,7 @@ import { TrendingUp, Target, Plus, Trash2, Crosshair, Scale, BarChart2, Medal } 
 import { StreakCalendar } from '../components/StreakCalendar';
 import { MuscleHeatmap } from '../components/MuscleHeatmap';
 
-export function Stats() {
+export default function Stats() {
   const { workouts, bodyweights, addBodyweight, deleteBodyweight, goals, addGoal, deleteGoal } = useWorkoutState();
 
   // --- 1. BODYWEIGHT TRACKING (Existing) ---
@@ -201,49 +201,55 @@ export function Stats() {
         </p>
       </div>
 
-      <div className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* --- GOALS WIDGET --- */}
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-scale-spring">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <Crosshair className="w-5 h-5 text-red-500" /> Macrocyle Targets
+        <div className="glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover transition-all duration-500 animate-scale-spring">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-3 text-[var(--color-text-main)]">
+              <div className="bg-gradient-to-br from-red-500/20 to-red-500/10 backdrop-blur-sm border border-red-500/20 p-2 rounded-xl">
+                <Crosshair className="w-5 h-5 text-red-500" />
+              </div>
+              Macrocycle Targets
             </h3>
             {!isCreatingGoal && (
-              <button onClick={() => setIsCreatingGoal(true)} className="text-[var(--color-brand-600)] bg-[var(--color-brand-500)]/10 p-1.5 rounded-lg hover:bg-[var(--color-brand-500)]/20 transition-colors">
+              <button onClick={() => setIsCreatingGoal(true)} className="text-[var(--color-brand-600)] bg-[var(--color-brand-500)]/10 backdrop-blur-sm border border-[var(--color-brand-500)]/20 p-2 rounded-xl hover:bg-[var(--color-brand-500)]/20 hover:scale-105 transition-all duration-300">
                 <Plus className="w-5 h-5" />
               </button>
             )}
           </div>
 
           {isCreatingGoal && (
-            <div className="bg-[var(--color-bg-base)] p-3 rounded-xl border border-[var(--color-border-subtle)] mb-4 space-y-3">
-              <div className="flex flex-col gap-1">
+            <div className="bg-gradient-to-br from-[var(--color-bg-base)]/80 to-[var(--color-bg-base)]/60 backdrop-blur-xl border border-[var(--color-border-subtle)]/30 rounded-2xl p-5 mb-6 shadow-inner space-y-4">
+              <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Exercise</label>
-                <select value={newGoalName} onChange={e => setNewGoalName(e.target.value)} className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] outline-none">
+                <select value={newGoalName} onChange={e => setNewGoalName(e.target.value)} className="bg-[var(--color-bg-card)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 rounded-xl p-3 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-brand-500)]/50 transition-colors">
                   {performedExerciseNames.map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
               </div>
-              <div className="flex gap-2">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Target WT</label>
-                  <input type="number" value={newGoalWeight} onChange={e => setNewGoalWeight(e.target.value)} placeholder="kg" className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] outline-none w-full" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Target Weight</label>
+                  <input type="number" value={newGoalWeight} onChange={e => setNewGoalWeight(e.target.value)} placeholder="kg" className="bg-[var(--color-bg-card)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 rounded-xl p-3 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-brand-500)]/50 transition-colors" />
                 </div>
-                <div className="flex flex-col gap-1 flex-1">
+                <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Deadline</label>
-                  <input type="date" value={newGoalDate} onChange={e => setNewGoalDate(e.target.value)} className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg p-2 text-sm text-[var(--color-text-main)] outline-none w-full" />
+                  <input type="date" value={newGoalDate} onChange={e => setNewGoalDate(e.target.value)} className="bg-[var(--color-bg-card)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 rounded-xl p-3 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-brand-500)]/50 transition-colors" />
                 </div>
               </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setIsCreatingGoal(false)} className="flex-1 py-2 text-xs font-bold text-[var(--color-text-muted)] border border-[var(--color-border-subtle)] rounded-lg">Cancel</button>
-                <button onClick={handleSaveGoal} className="flex-1 py-2 text-xs font-bold text-white bg-[var(--color-brand-500)] rounded-lg">Set Goal</button>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setIsCreatingGoal(false)} className="flex-1 py-3 text-sm font-bold text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]/30 rounded-xl hover:bg-[var(--color-bg-base)]/50 transition-colors">Cancel</button>
+                <button onClick={handleSaveGoal} className="flex-1 py-3 text-sm font-bold text-white bg-gradient-to-r from-[var(--color-brand-500)] to-[var(--color-brand-600)] rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300">Set Goal</button>
               </div>
             </div>
           )}
 
           {goals.length === 0 && !isCreatingGoal ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No active targets set. Pick a PR to chase!</p>
+            <div className="text-center py-8">
+              <Target className="w-12 h-12 text-[var(--color-text-muted)]/50 mx-auto mb-3" />
+              <p className="text-sm text-[var(--color-text-muted)] font-medium">No active targets set. Pick a PR to chase!</p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {goals.map(goal => {
                 const currentPR = getAllTimePR(goal.exerciseName);
                 const progressPercent = Math.min((currentPR / goal.targetWeight) * 100, 100);
@@ -276,41 +282,52 @@ export function Stats() {
         </div>
 
         {/* --- 1RM FORECASTER --- */}
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm animate-scale-spring stagger-1">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-500" /> 1RM Forecaster
+        <div className="glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover transition-all duration-500 animate-scale-spring stagger-1">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-3 text-[var(--color-text-main)]">
+              <div className="bg-gradient-to-br from-blue-500/20 to-blue-500/10 backdrop-blur-sm border border-blue-500/20 p-2 rounded-xl">
+                <TrendingUp className="w-5 h-5 text-blue-500" />
+              </div>
+              1RM Forecaster
             </h3>
             {performedExerciseNames.length > 0 && (
               <select 
                 value={forecasterExercise}
                 onChange={e => setForecasterExercise(e.target.value)}
-                className="bg-[var(--color-bg-base)] text-xs font-bold text-[var(--color-brand-600)] p-1.5 rounded outline-none max-w-[140px] truncate border border-[var(--color-brand-500)]/30"
+                className="bg-[var(--color-bg-base)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 text-sm font-bold text-[var(--color-brand-600)] px-3 py-2 rounded-xl outline-none focus:border-[var(--color-brand-500)]/50 transition-colors max-w-[160px] truncate"
               >
                 {performedExerciseNames.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
             )}
           </div>
-          <p className="text-xs text-[var(--color-text-muted)] mb-4">Calculates true 1-Rep Max capability longitudinally using the Brzycki Formula (Weight × 36 / (37 - Reps)).</p>
+          <p className="text-sm text-[var(--color-text-muted)] font-medium mb-6 leading-relaxed">Calculates true 1-Rep Max capability longitudinally using the Brzycki Formula (Weight × 36 / (37 - Reps)).</p>
           
-          <div className="h-[200px] w-full">
+          <div className="h-[240px] w-full">
             {forecasterData.length < 2 ? (
-              <div className="h-full w-full flex items-center justify-center text-sm text-[var(--color-text-muted)] text-center px-4 border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl">
-                Log {forecasterExercise || 'an exercise'} at least twice with weight and reps to see the Brzycki prediction curve.
+              <div className="h-full w-full flex flex-col items-center justify-center text-center px-6 py-8 border-2 border-dashed border-[var(--color-border-subtle)]/30 rounded-2xl bg-[var(--color-bg-base)]/30 backdrop-blur-sm">
+                <BarChart2 className="w-12 h-12 text-[var(--color-text-muted)]/50 mb-3" />
+                <p className="text-sm text-[var(--color-text-muted)] font-medium">Log {forecasterExercise || 'an exercise'} at least twice with weight and reps to see the Brzycki prediction curve.</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={forecasterData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} />
+                <LineChart data={forecasterData} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} opacity={0.3} />
                   <XAxis dataKey="date" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px', color: 'var(--color-text-main)', fontWeight: 'bold' }}
+                    contentStyle={{ 
+                      backgroundColor: 'var(--color-bg-card)', 
+                      border: '1px solid var(--color-border-subtle)', 
+                      borderRadius: '12px', 
+                      color: 'var(--color-text-main)', 
+                      fontWeight: '600',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                      backdropFilter: 'blur(8px)'
+                    }}
                     itemStyle={{ color: '#3b82f6' }}
-                    formatter={(value: any) => [`${value} kg`, 'Predicted 1RM']}
-                    labelStyle={{ color: 'var(--color-text-muted)', marginBottom: '4px' }}
+                    labelStyle={{ color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: '500' }}
                   />
-                  <Line type="monotone" dataKey="max1RM" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="max1RM" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2, fill: 'white' }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -333,7 +350,7 @@ export function Stats() {
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px', color: 'var(--color-text-main)', fontWeight: 'bold' }}
                   itemStyle={{ color: '#a855f7' }}
-                  formatter={(value: any) => [`${value} Sets`, 'Volume']}
+                  formatter={(value) => [`${Number(value) || 0} Sets`, 'Volume']}
                 />
               </RadarChart>
             </ResponsiveContainer>
@@ -385,7 +402,7 @@ export function Stats() {
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}
                     itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
-                    formatter={(value: any) => [`${value} kg`]}
+                    formatter={(value) => [`${Number(value) || 0} kg`]}
                     labelStyle={{ color: 'var(--color-text-muted)', marginBottom: '4px' }}
                   />
                   <Line type="monotone" dataKey="weight" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} activeDot={{ r: 6 }} />
@@ -432,7 +449,7 @@ export function Stats() {
                 <YAxis stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}
-                  formatter={(v: any) => [`${v.toLocaleString()} kg`, 'Volume']}
+                  formatter={(v) => [`${(Number(v) || 0).toLocaleString()} kg`, 'Volume']}
                   labelStyle={{ color: 'var(--color-text-muted)' }}
                 />
                 <Area type="monotone" dataKey="volume" stroke="var(--color-brand-500)" strokeWidth={2} fill="url(#volGrad)" />
@@ -471,7 +488,7 @@ export function Stats() {
                   <YAxis stroke="var(--color-text-muted)" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}
-                    formatter={(v: any) => [`${v} kg`, 'PR Weight']}
+                    formatter={(v) => [`${Number(v) || 0} kg`, 'PR Weight']}
                     labelStyle={{ color: 'var(--color-text-muted)' }}
                   />
                   <Line type="stepAfter" dataKey="weight" stroke="#f59e0b" strokeWidth={3}

@@ -65,10 +65,13 @@ export function StreakCalendar() {
   }, [workouts]);
 
   // Group cells into weeks (columns of 7)
-  const weeks: typeof cells[] = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
+  const weeks = useMemo(() => {
+    const weekArray: typeof cells[] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weekArray.push(cells.slice(i, i + 7));
+    }
+    return weekArray;
+  }, [cells]);
 
   const MONTH_LABELS = useMemo(() => {
     const labels: { label: string; col: number }[] = [];

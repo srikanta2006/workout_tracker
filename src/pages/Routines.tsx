@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Program } from '../types';
 import clsx from 'clsx';
 
-export function Routines() {
+export default function Routines() {
   const { routines, deleteRoutine, programs, addProgram, deleteProgram, activeProgram, setActiveProgram } = useWorkoutState();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'templates' | 'programs'>('templates');
@@ -113,35 +113,55 @@ export function Routines() {
                   <div 
                     key={routine.id} 
                     className={clsx(
-                      "animate-fade-in-up bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-sm hover:border-[var(--color-brand-500)] transition-colors",
+                      "group relative glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:border-[var(--color-brand-500)]/30 transition-all duration-500 cursor-pointer overflow-hidden",
                       `stagger-${Math.min(index + 1, 5)}`
                     )}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-[var(--color-text-main)]">{routine.name}</h3>
-                        <div className="text-sm text-[var(--color-text-muted)] mt-1">{routine.muscleGroups?.join(', ')} Focus</div>
-                      </div>
-                      <button 
-                        onClick={() => deleteRoutine(routine.id)}
-                        className="p-2 text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                    
-                    <div className="text-sm text-[var(--color-text-muted)] mb-4">
-                      <span className="font-semibold">{routine.exercises.length}</span> exercises included
-                    </div>
+                    {/* Subtle background gradient on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-brand-500)]/5 via-transparent to-blue-500/3 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-[var(--color-text-main)] mb-1 group-hover:text-[var(--color-brand-500)] transition-colors duration-300">
+                            {routine.name}
+                          </h3>
+                          <div className="text-sm text-[var(--color-text-muted)] font-medium">{routine.muscleGroups?.join(', ')} Focus</div>
+                        </div>
+                        <button 
+                          onClick={() => deleteRoutine(routine.id)}
+                          className="p-2 text-[var(--color-text-muted)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border-subtle)]/30">
+                        <div className="text-sm text-[var(--color-text-muted)]">
+                          <span className="font-bold text-[var(--color-text-main)] text-lg">{routine.exercises.length}</span> exercises
+                        </div>
+                        <div className="bg-[var(--color-bg-base)]/50 backdrop-blur-sm border border-[var(--color-border-subtle)]/30 p-2 rounded-xl group-hover:bg-[var(--color-brand-500)]/10 group-hover:border-[var(--color-brand-500)]/30 transition-all duration-300">
+                          <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-[var(--color-brand-500)] group-hover:translate-x-1 transition-all duration-300" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
-                <button 
-                  onClick={() => navigate('/workout?mode=template')}
-                  className="w-full h-full min-h-[160px] border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/5 transition-colors flex flex-col justify-center items-center gap-2"
+                <Link 
+                  to="/workout?mode=template"
+                  className="group relative glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:border-[var(--color-brand-500)]/40 transition-all duration-500 cursor-pointer overflow-hidden min-h-[200px] flex flex-col justify-center items-center text-center"
                 >
-                  <Plus className="w-8 h-8" /> New Day Template
-                </button>
+                  {/* Subtle background gradient on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-brand-500)]/5 via-transparent to-blue-500/3 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                  <div className="relative z-10">
+                    <div className="bg-gradient-to-br from-[var(--color-brand-500)]/20 to-[var(--color-brand-500)]/10 backdrop-blur-sm border border-[var(--color-brand-500)]/20 p-4 rounded-2xl mb-4 group-hover:scale-110 group-hover:shadow-lg transition-all duration-300">
+                      <Plus className="w-8 h-8 text-[var(--color-brand-500)]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-[var(--color-text-main)] mb-2 group-hover:text-[var(--color-brand-500)] transition-colors duration-300">New Day Template</h3>
+                    <p className="text-sm text-[var(--color-text-muted)] font-medium">Create standalone day templates to use in your routines.</p>
+                  </div>
+                </Link>
               </>
             )}
           </>

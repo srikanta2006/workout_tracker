@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Download, Upload, Trash2, Settings as SettingsIcon } from 'lucide-react';
 
-export function Settings() {
+export default function Settings() {
   const [importStatus, setImportStatus] = useState('');
 
   const handleExport = () => {
@@ -51,7 +51,7 @@ export function Settings() {
         } else {
           setImportStatus('Error: Invalid backup file format.');
         }
-      } catch (err) {
+      } catch {
         setImportStatus('Error reading JSON file.');
       }
     };
