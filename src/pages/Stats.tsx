@@ -153,7 +153,7 @@ export function Stats() {
         </p>
       </div>
 
-      <div className="flex-1 w-full space-y-6">
+      <div className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
         {/* --- GOALS WIDGET --- */}
         <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-4 shadow-sm">

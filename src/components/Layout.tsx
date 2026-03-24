@@ -1,76 +1,97 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Activity, History, Dumbbell, BarChart2, ClipboardList, Settings as SettingsIcon } from 'lucide-react';
+import { Activity, LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell } from 'lucide-react';
 import clsx from 'clsx';
 
 export function Layout() {
   const location = useLocation();
 
-  return (
-    <div className="flex flex-col min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)] w-full max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-[var(--color-border-subtle)]">
-      {/* Header */}
-      <header className="px-4 py-4 bg-[var(--color-bg-card)] border-b border-[var(--color-border-subtle)] sticky top-0 z-10 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
-          <h1 className="text-xl font-bold tracking-tight">ParkWise Workout</h1>
-        </div>
-        <Link to="/settings" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors p-1">
-          <SettingsIcon className="w-5 h-5" />
-        </Link>
-      </header>
+  // Consolidating to 4 core tabs for an ultra-clean, native application feel.
+  const NAV_ITEMS = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Workout', path: '/routines', icon: Activity },
+    { name: 'Measure', path: '/stats', icon: BarChart2 },
+    { name: 'Settings', path: '/settings', icon: SettingsIcon },
+  ];
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto w-full flex flex-col pt-4 pb-24 items-center px-4">
-        <Outlet />
+  return (
+    <div className="flex h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)] w-full overflow-hidden font-sans">
+      
+      {/* --- DESKTOP / TABLET SLIM NAVIGATION --- */}
+      <aside className="hidden md:flex flex-col w-20 lg:w-64 h-full bg-[var(--color-bg-card)] border-r border-[var(--color-border-subtle)] flex-shrink-0 transition-all duration-300">
+        <div className="p-6 flex items-center justify-center lg:justify-start gap-3 border-b border-[var(--color-border-subtle)]">
+          <Dumbbell className="w-8 h-8 text-[var(--color-brand-500)] flex-shrink-0" />
+          <h1 className="text-xl font-bold tracking-tight hidden lg:block">MaxOut</h1>
+        </div>
+        
+        <nav className="flex-1 py-6 px-3 lg:px-4 space-y-2 overflow-y-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path || (item.path === '/routines' && location.pathname.startsWith('/workout'));
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={clsx(
+                  "flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-xl font-semibold transition-all active:scale-95 group",
+                  isActive 
+                    ? "bg-[var(--color-brand-500)] text-white shadow-md" 
+                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-border-subtle)] hover:text-[var(--color-text-main)]"
+                )}
+                title={item.name}
+              >
+                <Icon className={clsx("w-6 h-6", isActive ? "text-white" : "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]")} />
+                <span className="hidden lg:block">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* --- MAIN CONTENT AREA --- */}
+      <main className="flex-1 h-full overflow-y-auto w-full custom-scrollbar relative">
+        {/* Mobile Header (Hidden on Desktop) */}
+        <header className="md:hidden sticky top-0 z-40 bg-[var(--color-bg-card)]/90 backdrop-blur-md border-b border-[var(--color-border-subtle)] px-4 py-3 flex items-center gap-2">
+          <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
+          <h1 className="text-xl font-bold tracking-tight">MaxOut</h1>
+        </header>
+
+        <div className="w-full max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-12 md:p-8">
+          <Outlet />
+        </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full max-w-md bg-[var(--color-bg-card)] border-t border-[var(--color-border-subtle)] z-20 pb-safe">
-        <div className="flex items-center justify-around h-16 px-2">
-          <Link
-            to="/"
-            className={clsx(
-              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-              location.pathname === '/' ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
-            )}
-          >
-            <History className="w-5 h-5" />
-            <span className="text-[10px] font-medium">History</span>
-          </Link>
-          <div className="w-px h-8 bg-[var(--color-border-subtle)] opacity-50"></div>
-          <Link
-            to="/stats"
-            className={clsx(
-              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-              location.pathname === '/stats' ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
-            )}
-          >
-            <BarChart2 className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Stats</span>
-          </Link>
-          <div className="w-px h-8 bg-[var(--color-border-subtle)] opacity-50"></div>
-          <Link
-            to="/routines"
-            className={clsx(
-              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-              location.pathname === '/routines' ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
-            )}
-          >
-            <ClipboardList className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Routines</span>
-          </Link>
-          <div className="w-px h-8 bg-[var(--color-border-subtle)] opacity-50"></div>
-          <Link
-            to="/workout"
-            className={clsx(
-              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-              location.pathname.startsWith('/workout') ? "text-[var(--color-brand-600)]" : "text-[var(--color-text-muted)] hover:text-gray-300"
-            )}
-          >
-            <Activity className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Log</span>
-          </Link>
+      {/* --- MOBILE SOLID BOTTOM TAB BAR --- */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-bg-card)]/95 backdrop-blur-xl border-t border-[var(--color-border-subtle)] pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center justify-around h-[4.5rem] px-2">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path || (item.path === '/routines' && location.pathname.startsWith('/workout'));
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="flex flex-col items-center justify-center w-full h-full pt-1 pb-2 space-y-1 active:scale-95 transition-transform"
+              >
+                <div className={clsx(
+                  "p-1.5 rounded-full transition-colors",
+                  isActive ? "bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]" : "text-[var(--color-text-muted)]"
+                )}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <span className={clsx(
+                  "text-[10px] font-bold tracking-wide",
+                  isActive ? "text-[var(--color-brand-500)]" : "text-[var(--color-text-muted)]"
+                )}>
+                  {item.name}
+                </span>
+              </Link>
+            )
+          })}
         </div>
       </nav>
+
     </div>
   );
 }

@@ -16,8 +16,9 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
   return (
     <div 
       onClick={onClick}
-      className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-4 mb-4 shadow-sm cursor-pointer hover:border-[var(--color-brand-500)] transition-colors active:scale-[0.98]"
+      className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-3xl p-5 mb-4 shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer hover:border-[var(--color-brand-500)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] transition-all active:scale-95 relative overflow-hidden"
     >
+      <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--color-brand-500)]/5 rounded-full blur-2xl pointer-events-none"></div>
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-lg font-bold text-[var(--color-text-main)]">{workout.muscleGroup} Day</h3>
@@ -26,8 +27,8 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
             {format(new Date(workout.date), 'MMM d, yyyy')}
           </div>
         </div>
-        <div className="bg-[var(--color-brand-500)]/10 text-[var(--color-brand-600)] p-2 rounded-lg">
-          <Dumbbell className="w-5 h-5" />
+        <div className="bg-[var(--color-brand-500)]/10 text-[var(--color-brand-500)] p-3 rounded-2xl shadow-inner z-10">
+          <Dumbbell className="w-5 h-5 drop-shadow-[0_0_8px_rgba(236,72,153,0.5)]" />
         </div>
       </div>
       

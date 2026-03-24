@@ -33,15 +33,15 @@ export function Dashboard() {
   if (workouts.length === 0 && !activeProg) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 h-full mt-20 text-center px-4 w-full">
-        <div className="bg-[var(--color-bg-card)] p-6 rounded-2xl shadow-sm border border-[var(--color-border-subtle)] mb-6">
-          <Dumbbell className="w-12 h-12 text-[var(--color-brand-500)] mx-auto mb-4 opacity-80" />
-          <h2 className="text-xl font-bold mb-2">No Workouts Yet</h2>
-          <p className="text-[var(--color-text-muted)] mb-6">Time to hit the gym. Start your first workout session now!</p>
+        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] p-8 rounded-3xl shadow-sm mb-6 text-center max-w-md w-full">
+          <Dumbbell className="w-16 h-16 text-[var(--color-brand-500)] mx-auto mb-4" />
+          <h2 className="text-2xl font-bold tracking-tight mb-2 text-[var(--color-text-main)]">No Workouts Yet</h2>
+          <p className="text-[var(--color-text-muted)] mb-8 font-medium">Time to hit the gym. Start your first session now!</p>
           <Link
-            to="/workout"
-            className="bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white px-6 py-3 rounded-lg font-semibold inline-block transition-colors"
+            to="/routines"
+            className="w-full bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white px-8 py-3 rounded-xl font-bold inline-block shadow-sm active:scale-95 transition-all"
           >
-            Log a Workout
+            Start a Workout
           </Link>
         </div>
       </div>
@@ -49,105 +49,115 @@ export function Dashboard() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col pb-8">
-      <div className="mb-6 px-1 flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">History</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            You've completed {workouts.length} {workouts.length === 1 ? 'session' : 'sessions'}.
-          </p>
-        </div>
-      </div>
-
-      {activeProg && (
-        <div className="bg-gradient-to-br from-[var(--color-brand-500)] to-blue-600 rounded-xl p-5 shadow-lg mb-6 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Calendar className="w-24 h-24" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">Active Cycle</span>
-              <span className="text-sm font-semibold opacity-90">{activeProg.name}</span>
+    <div className="w-full h-full flex flex-col gap-8 pb-8">
+      
+      {/* --- TOP ROW: ACTIONABLE DAILY ITEMS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-stretch">
+        {activeProg && (
+          <div className="bg-gradient-to-br from-[var(--color-bg-card)] to-[#1a1a1c] rounded-3xl p-6 shadow-sm border border-[var(--color-border-subtle)] flex flex-col justify-between relative overflow-hidden h-full">
+            <div className="absolute -top-10 -right-10 p-4 opacity-5 transform rotate-12 pointer-events-none">
+              <Calendar className="w-48 h-48 text-white" />
             </div>
             
-            <h3 className="text-2xl font-bold mb-4 drop-shadow-sm">
-              Day {currentCycleDay} <span className="text-white/70 text-lg">/ {activeProg.lengthInDays}</span>
-            </h3>
-
-            {routineToPerform ? (
-              <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/20">
-                <p className="text-sm font-bold opacity-90 mb-1 uppercase tracking-wider text-blue-100">Workout Today</p>
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-lg">{routineToPerform.name}</span>
-                  <button 
-                    onClick={() => navigate(`/workout?routineId=${routineToPerform.id}`)}
-                    className="bg-white text-[var(--color-brand-600)] hover:bg-white/90 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-transform active:scale-95 flex items-center gap-1"
-                  >
-                    <Play className="w-4 h-4 fill-current" /> Start
-                  </button>
-                </div>
+            <div className="relative z-10 w-full mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-[var(--color-brand-500)]/10 text-[var(--color-brand-500)] text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">Active Cycle</span>
+                <span className="text-sm font-semibold text-[var(--color-text-muted)]">{activeProg.name}</span>
               </div>
-            ) : (
-              <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/20 flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-lg flex items-center gap-2"><Moon className="w-5 h-5" /> Rest Day</p>
-                  <p className="text-sm opacity-80 mt-0.5">Recover and rebuild.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              
+              <h3 className="text-3xl font-bold text-[var(--color-text-main)] tracking-tight">
+                Day {currentCycleDay} <span className="text-[var(--color-text-muted)] text-xl font-medium">/ {activeProg.lengthInDays}</span>
+              </h3>
+            </div>
 
-      <RecoveryWidget />
-
-      <div className="flex-1 w-full space-y-4">
-        {workouts.map(workout => (
-          <div key={workout.id}>
-            <WorkoutCard
-              workout={workout}
-              onClick={() => setSelectedWorkoutId(selectedWorkoutId === workout.id ? null : workout.id)}
-            />
-            {selectedWorkoutId === workout.id && (
-              <div className="bg-[var(--color-bg-card)] p-4 rounded-xl border border-[var(--color-border-subtle)] mb-4 -mt-2 shadow-inner">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-bold">Workout Details</h4>
-                  <div className="flex gap-2">
-                    <Link
-                      to={`/workout/${workout.id}`}
-                      className="text-[var(--color-brand-600)] hover:text-[var(--color-brand-500)] text-sm font-medium px-3 py-1 rounded border border-[var(--color-brand-500)]/20 hover:bg-[var(--color-brand-500)]/5"
-                    >
-                      Edit
-                    </Link>
+            <div className="relative z-10 w-full mt-auto">
+              {routineToPerform ? (
+                <div className="bg-[var(--color-bg-base)] rounded-2xl p-4 border border-[var(--color-border-subtle)] flex flex-col gap-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-brand-500)]">Workout Today</p>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-bold text-lg leading-tight line-clamp-1 break-all flex-1">{routineToPerform.name}</span>
                     <button 
-                      onClick={() => deleteWorkout(workout.id)}
-                      className="text-red-500 hover:text-red-600 text-sm font-medium px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                      onClick={() => navigate(`/workout?routineId=${routineToPerform.id}`)}
+                      className="bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95 flex items-center gap-1 shrink-0"
                     >
-                      Delete
+                      <Play className="w-4 h-4 fill-current" /> GO
                     </button>
                   </div>
                 </div>
-                {workout.exercises.map((ex, idx) => (
-                  <div key={ex.id} className="mb-4 last:mb-0">
-                    <p className="font-medium text-sm text-[var(--color-brand-600)] mb-2">{idx + 1}. {ex.name}</p>
-                    <div className="grid grid-cols-3 gap-2 text-xs text-[var(--color-text-muted)] mb-1 px-2 border-b border-[var(--color-border-subtle)] pb-1">
-                      <span>Set</span>
-                      <span className="text-center">lbs/kg</span>
-                      <span className="text-right">Reps</span>
-                    </div>
-                    {ex.sets.map(set => (
-                      <div key={set.id} className="grid grid-cols-3 gap-2 text-sm px-2 py-1 bg-[--color-bg-base] rounded mb-1">
-                        <span className="text-[var(--color-text-muted)]">{set.setNumber}</span>
-                        <span className="font-medium text-center">{set.weight || '-'}</span>
-                        <span className="font-medium text-right">{set.reps || '-'}</span>
-                      </div>
-                    ))}
+              ) : (
+                <div className="bg-[var(--color-bg-base)] rounded-2xl p-4 border border-[var(--color-border-subtle)] flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-lg flex items-center gap-2"><Moon className="w-5 h-5 text-[var(--color-text-muted)]" /> Rest Day</p>
+                    <p className="text-xs font-medium text-[var(--color-text-muted)] mt-1 uppercase tracking-wider">Recover and rebuild.</p>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
-        ))}
+        )}
+
+        <div className="h-full w-full">
+          <RecoveryWidget />
+        </div>
+      </div>
+
+      {/* --- BOTTOM ROW: HISTORY GRID --- */}
+      <div>
+        <div className="mb-4 flex flex-col items-start w-full">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Recent Workouts</h2>
+          <p className="text-sm font-medium text-[var(--color-text-muted)] mt-1">
+            {workouts.length} lifetime {workouts.length === 1 ? 'session' : 'sessions'}
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
+          {workouts.map(workout => (
+            <div key={workout.id}>
+              <WorkoutCard
+                workout={workout}
+                onClick={() => setSelectedWorkoutId(selectedWorkoutId === workout.id ? null : workout.id)}
+              />
+              {selectedWorkoutId === workout.id && (
+                <div className="bg-[var(--color-bg-card)] p-4 rounded-xl border border-[var(--color-border-subtle)] mb-4 -mt-2 shadow-inner">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-bold text-[var(--color-text-main)]">Workout Details</h4>
+                    <div className="flex gap-2">
+                      <Link
+                        to={`/workout/${workout.id}`}
+                        className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-3 py-1 rounded-lg border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors"
+                      >
+                        Edit
+                      </Link>
+                      <button 
+                        onClick={() => deleteWorkout(workout.id)}
+                        className="text-red-500 hover:text-white text-sm font-medium px-3 py-1 rounded-lg border border-[var(--color-border-subtle)] hover:border-red-500 hover:bg-red-500 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {workout.exercises.map((ex, idx) => (
+                    <div key={ex.id} className="mb-4 last:mb-0">
+                      <p className="font-medium text-sm text-[var(--color-text-main)] mb-2">{idx + 1}. {ex.name}</p>
+                      <div className="grid grid-cols-3 gap-2 text-xs text-[var(--color-text-muted)] mb-1 px-2 border-b border-[var(--color-border-subtle)] pb-1">
+                        <span>Set</span>
+                        <span className="text-center">lbs/kg</span>
+                        <span className="text-right">Reps</span>
+                      </div>
+                      {ex.sets.map(set => (
+                        <div key={set.id} className="grid grid-cols-3 gap-2 text-sm px-2 py-1 bg-[--color-bg-base] rounded mb-1 text-[var(--color-text-main)]">
+                          <span className="text-[var(--color-text-muted)]">{set.setNumber}</span>
+                          <span className="font-medium text-center">{set.weight || '-'}</span>
+                          <span className="font-medium text-right">{set.reps || '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

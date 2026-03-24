@@ -20,7 +20,7 @@ export function Settings() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `parkwise_workout_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `maxout_workout_backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -72,76 +72,78 @@ export function Settings() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col pb-8">
-      <div className="mb-8 px-1">
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] flex items-center gap-2">
-          <SettingsIcon className="w-6 h-6 text-[var(--color-brand-600)]" />
-          Settings & Data
-        </h2>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          Manage your app data and backup your progress locally.
-        </p>
-      </div>
-
-      <div className="space-y-6">
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-5 shadow-sm">
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-[var(--color-text-main)]">
-            <Download className="w-5 h-5 text-green-500" />
-            Export Data
-          </h3>
-          <p className="text-sm text-[var(--color-text-muted)] mb-4">
-            Save a copy of your entire workout history, routines, and physical stats to a JSON file.
+    <div className="w-full h-full flex flex-col pb-8 items-center">
+      <div className="w-full max-w-2xl">
+        <div className="mb-8 px-1">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] flex items-center gap-2">
+            <SettingsIcon className="w-6 h-6 text-[var(--color-brand-600)]" />
+            Settings & Data
+          </h2>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            Manage your app data and backup your progress locally.
           </p>
-          <button 
-            onClick={handleExport}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
-          >
-            Export Backup (.json)
-          </button>
         </div>
 
-        <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-5 shadow-sm">
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-[var(--color-text-main)]">
-            <Upload className="w-5 h-5 text-blue-500" />
-            Import Data
-          </h3>
-          <p className="text-sm text-[var(--color-text-muted)] mb-4">
-            Restore your previously exported ParkWise workout backup. This will overwrite any current data!
-          </p>
-          
-          <div className="relative w-full h-12">
-            <input 
-              type="file" 
-              accept=".json"
-              onChange={handleImport}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            />
-            <div className="absolute inset-0 bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-lg flex items-center justify-center font-bold text-sm pointer-events-none transition-colors">
-              Choose Backup File
-            </div>
+        <div className="space-y-6">
+          <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-5 shadow-sm">
+            <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-[var(--color-text-main)]">
+              <Download className="w-5 h-5 text-green-500" />
+              Export Data
+            </h3>
+            <p className="text-sm text-[var(--color-text-muted)] mb-4">
+              Save a copy of your entire workout history, routines, and physical stats to a JSON file.
+            </p>
+            <button 
+              onClick={handleExport}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+            >
+              Export Backup (.json)
+            </button>
           </div>
-          
-          {importStatus && (
-            <div className={`mt-3 text-sm font-semibold text-center ${importStatus.includes('successfully') ? 'text-green-500' : 'text-red-500'}`}>
-              {importStatus}
-            </div>
-          )}
-        </div>
 
-        <div className="bg-[var(--color-bg-card)] border border-red-500/30 rounded-xl p-5 shadow-sm mt-12">
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-red-500">
-            <Trash2 className="w-5 h-5" />
-            Danger Zone
-          </h3>
-          <p className="text-sm text-[var(--color-text-muted)] mb-4">
-            Completely wipe all data associated with this app from this device.
-          </p>
-          <button 
-            onClick={handleClearAll}
-            className="w-full bg-transparent border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-bold py-3 rounded-lg transition-colors active:scale-[0.98]"
-          >
-            Reset All Data
-          </button>
+          <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-xl p-5 shadow-sm">
+            <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-[var(--color-text-main)]">
+              <Upload className="w-5 h-5 text-blue-500" />
+              Import Data
+            </h3>
+            <p className="text-sm text-[var(--color-text-muted)] mb-4">
+              Restore your previously exported IronForge workout backup. This will overwrite any current data!
+            </p>
+            
+            <div className="relative w-full h-12">
+              <input 
+                type="file" 
+                accept=".json"
+                onChange={handleImport}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="absolute inset-0 bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-lg flex items-center justify-center font-bold text-sm pointer-events-none transition-colors">
+                Choose Backup File
+              </div>
+            </div>
+            
+            {importStatus && (
+              <div className={`mt-3 text-sm font-semibold text-center ${importStatus.includes('successfully') ? 'text-green-500' : 'text-red-500'}`}>
+                {importStatus}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-[var(--color-bg-card)] border border-red-500/30 rounded-xl p-5 shadow-sm mt-12">
+            <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-red-500">
+              <Trash2 className="w-5 h-5" />
+              Danger Zone
+            </h3>
+            <p className="text-sm text-[var(--color-text-muted)] mb-4">
+              Completely wipe all data associated with this app from this device.
+            </p>
+            <button 
+              onClick={handleClearAll}
+              className="w-full bg-transparent border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-bold py-3 rounded-lg transition-colors active:scale-[0.98]"
+            >
+              Reset All Data
+            </button>
+          </div>
         </div>
       </div>
     </div>
