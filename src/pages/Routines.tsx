@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Program } from '../types';
+import type { Program, Routine } from '../types';
 import clsx from 'clsx';
 
 export default function Routines() {
@@ -10,6 +10,7 @@ export default function Routines() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'templates' | 'programs'>('templates');
   const [isCreatingProgram, setIsCreatingProgram] = useState(false);
+  const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
 
   // New Program State
   const [newProgramName, setNewProgramName] = useState('');
@@ -68,8 +69,8 @@ export default function Routines() {
 
   return (
     <div className="w-full h-full flex flex-col pb-8">
-      <div className="mb-6 px-1">
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Planner</h2>
+      <section aria-labelledby="planner-title" className="mb-6 px-1">
+        <h2 id="planner-title" className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Planner</h2>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">
           Build single Day Templates, then combine them into multi-week Routines.
         </p>
@@ -88,7 +89,7 @@ export default function Routines() {
             Routines (Weeks)
           </button>
         </div>
-      </div>
+      </section>
 
       <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 items-start">
         
@@ -112,8 +113,9 @@ export default function Routines() {
                 {routines.map((routine, index) => (
                   <div 
                     key={routine.id} 
+                    onClick={() => setSelectedRoutine(routine)}
                     className={clsx(
-                      "group relative glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:border-[var(--color-brand-500)]/30 transition-all duration-500 cursor-pointer overflow-hidden",
+                      "group relative glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:border-[var(--color-brand-500)]/30 transition-all duration-500 cursor-pointer overflow-hidden text-left w-full",
                       `stagger-${Math.min(index + 1, 5)}`
                     )}
                   >
@@ -129,8 +131,8 @@ export default function Routines() {
                           <div className="text-sm text-[var(--color-text-muted)] font-medium">{routine.muscleGroups?.join(', ')} Focus</div>
                         </div>
                         <button 
-                          onClick={() => deleteRoutine(routine.id)}
-                          className="p-2 text-[var(--color-text-muted)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id); }}
+                          className="p-2 text-[var(--color-text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-300"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
@@ -331,6 +333,79 @@ export default function Routines() {
           </>
         )}
       </div>
+
+      {/* TEMPLATE DETAIL MODAL */}
+      {selectedRoutine && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 isolate">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setSelectedRoutine(null)}
+          ></div>
+          
+          <div className="relative glass-card w-full max-w-md max-h-[80vh] overflow-hidden rounded-3xl shadow-2xl border border-white/10 flex flex-col animate-scale-spring bg-[#111113]">
+            {/* Header */}
+            <div className="p-6 pb-2 border-b border-white/5 flex justify-between items-start">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">{selectedRoutine.name}</h3>
+                <div className="flex flex-wrap gap-1">
+                  {selectedRoutine.muscleGroups?.map(mg => (
+                    <span key={mg} className="text-[10px] font-bold uppercase tracking-wider bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)] px-2 py-0.5 rounded-full border border-[var(--color-brand-500)]/20">
+                      {mg}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedRoutine(null)}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <div className="space-y-6">
+                {selectedRoutine.exercises.map((exercise, idx) => (
+                  <div key={idx} className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                    <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                       <span className="w-6 h-6 rounded-full bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)] text-xs flex items-center justify-center font-black">
+                         {idx + 1}
+                       </span>
+                       {exercise.name}
+                    </h4>
+                    <div className="space-y-2">
+                       {exercise.sets.map((set, sIdx) => (
+                         <div key={sIdx} className="flex justify-between items-center text-sm px-2 py-1.5 bg-black/20 rounded-lg">
+                           <span className="text-white/40 font-bold">SET {sIdx + 1}</span>
+                           <div className="flex gap-4">
+                             <span className="text-white/80 font-medium">
+                               <b className="text-white">{set.weight || '0'}</b> kg
+                             </span>
+                             <span className="text-white/80 font-medium">
+                               <b className="text-white">{set.reps || '0'}</b> reps
+                             </span>
+                           </div>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-white/5">
+              <button 
+                onClick={() => setSelectedRoutine(null)}
+                className="w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all active:scale-[0.98]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

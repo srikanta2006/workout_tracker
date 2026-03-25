@@ -37,11 +37,11 @@ export default function Achievements() {
   return (
     <div className="w-full h-full flex flex-col pb-8">
 
-      {/* Header */}
-      <div className="mb-6 px-1 animate-fade-in-up">
+      <section aria-labelledby="achievements-header" className="mb-6 px-1 animate-fade-in-up">
+        <h2 id="achievements-header" className="sr-only">Achievements Overview</h2>
         <div className="flex items-center gap-3 mb-1">
           <Trophy className="w-7 h-7 text-amber-400" />
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Achievements</h2>
+          <h3 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Achievements</h3>
         </div>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">
           {unlocked.length} of {achievements.length} unlocked · {inProgress.length} in progress
@@ -52,7 +52,7 @@ export default function Achievements() {
             style={{ width: `${(unlocked.length / achievements.length) * 100}%` }}
           />
         </div>
-      </div>
+      </section>
 
       {/* In-Progress Spotlight */}
       {inProgress.length > 0 && activeCategory === 'All' && !showAll && (

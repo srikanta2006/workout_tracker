@@ -22,17 +22,17 @@ export interface AchievementDef {
 function totalVolume(workouts: WorkoutSession[]): number {
   return workouts.reduce((t, s) =>
     t + s.exercises.reduce((et, e) =>
-      et + e.sets.reduce((st, set) => st + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0), 0);
+      et + e.sets.reduce((st, set) => st + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0), 0), 0);
 }
 
 function sessionVolume(s: WorkoutSession): number {
   return s.exercises.reduce((et, e) =>
-    et + e.sets.reduce((st, set) => st + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
+    et + e.sets.reduce((st, set) => st + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0), 0);
 }
 
 function maxWeight(workouts: WorkoutSession[]): number {
   return Math.max(0, ...workouts.flatMap(s =>
-    s.exercises.flatMap(e => e.sets.map(set => Number(set.weight) || 0))));
+    s.exercises.flatMap(e => e.sets.filter(set => set.completed).map(set => Number(set.weight) || 0))));
 }
 
 function uniqueExercises(workouts: WorkoutSession[]): Set<string> {
@@ -329,11 +329,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'Strength',
     rarity: 'Common',
     getProgress: (w) => {
-      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.map(set => Number(set.reps) || 0))));
+      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.filter(set => set.completed).map(set => Number(set.reps) || 0))));
       return max >= 10 ? 1 : max / 10;
     },
     getHint: (w) => {
-      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.map(set => Number(set.reps) || 0))));
+      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.filter(set => set.completed).map(set => Number(set.reps) || 0))));
       return `Max reps: ${Math.min(max, 10)} / 10`;
     },
   },
@@ -619,11 +619,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'Strength',
     rarity: 'Rare',
     getProgress: (w) => {
-      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.map(set => Number(set.reps) || 0))));
+      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.filter(set => set.completed).map(set => Number(set.reps) || 0))));
       return Math.min(max / 20, 1);
     },
     getHint: (w) => {
-      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.map(set => Number(set.reps) || 0))));
+      const max = Math.max(0, ...w.flatMap(s => s.exercises.flatMap(e => e.sets.filter(set => set.completed).map(set => Number(set.reps) || 0))));
       return `Max reps logged: ${Math.min(max, 20)} / 20`;
     },
   },
@@ -651,11 +651,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'Strength',
     rarity: 'Epic',
     getProgress: (w) => {
-      const max = Math.max(0, ...w.map(s => s.exercises.reduce((t, e) => t + e.sets.length, 0)));
+      const max = Math.max(0, ...w.map(s => s.exercises.reduce((t, e) => t + e.sets.filter(set => set.completed).length, 0)));
       return Math.min(max / 20, 1);
     },
     getHint: (w) => {
-      const max = Math.max(0, ...w.map(s => s.exercises.reduce((t, e) => t + e.sets.length, 0)));
+      const max = Math.max(0, ...w.map(s => s.exercises.reduce((t, e) => t + e.sets.filter(set => set.completed).length, 0)));
       return `Most sets in one session: ${Math.min(max, 20)} / 20`;
     },
   },

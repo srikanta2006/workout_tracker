@@ -60,7 +60,7 @@ export default function Stats() {
 
       let dailyMax1RM = 0;
       exerciseRecords.forEach(ex => {
-        ex.sets.forEach(set => {
+        ex.sets.filter(set => set.completed).forEach(set => {
           const w = Number(set.weight);
           const r = Number(set.reps);
           // Brzycki formula is only somewhat accurate for reps <= 10
@@ -107,12 +107,12 @@ export default function Stats() {
         
         if (mg !== 'Other' && muscleGroupCounts[mg] !== undefined) {
           // Precise mapping found in Dictionary
-          muscleGroupCounts[mg] += ex.sets.length; 
+          muscleGroupCounts[mg] += ex.sets.filter(s => s.completed).length; 
         } else if (w.muscleGroups && w.muscleGroups.length > 0) {
           // Unknown or custom exercise: fall back to the session's macro-tags
           w.muscleGroups.forEach(taggedMg => {
             if (muscleGroupCounts[taggedMg] !== undefined) {
-              muscleGroupCounts[taggedMg] += ex.sets.length;
+              muscleGroupCounts[taggedMg] += ex.sets.filter(s => s.completed).length;
             }
           });
         }
@@ -149,7 +149,7 @@ export default function Stats() {
     let max = 0;
     workouts.forEach(w => {
       w.exercises.filter(e => e.name === exerciseName).forEach(ex => {
-        ex.sets.forEach(s => { const sw = Number(s.weight); if (sw > max) max = sw; });
+        ex.sets.filter(s => s.completed).forEach(s => { const sw = Number(s.weight); if (sw > max) max = sw; });
       });
     });
     return max;
@@ -164,7 +164,7 @@ export default function Stats() {
     workouts.forEach(w => {
       const key = w.date.slice(0, 10);
       const vol = w.exercises.reduce((t, e) =>
-        t + e.sets.reduce((st, s) => st + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0), 0);
+        t + e.sets.reduce((st, s) => st + (s.completed ? (Number(s.weight) || 0) * (Number(s.reps) || 0) : 0), 0), 0);
       byDay[key] = (byDay[key] || 0) + Math.round(vol);
     });
     return days.map(d => ({
@@ -183,7 +183,7 @@ export default function Stats() {
     sorted.forEach(w => {
       const exs = w.exercises.filter(e => e.name === prExercise);
       if (exs.length === 0) return;
-      const maxW = Math.max(0, ...exs.flatMap(e => e.sets.map(s => Number(s.weight) || 0)));
+      const maxW = Math.max(0, ...exs.flatMap(e => e.sets.filter(s => s.completed).map(s => Number(s.weight) || 0)));
       if (maxW > running) {
         running = maxW;
         out.push({ date: format(parseISO(w.date), 'MMM d'), weight: maxW });
@@ -194,14 +194,13 @@ export default function Stats() {
 
   return (
     <div className="w-full h-full flex flex-col pb-8">
-      <div className="mb-6 px-1">
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Analytics Hub</h2>
+      <section aria-labelledby="stats-title" className="mb-6 px-1">
+        <h2 id="stats-title" className="text-2xl font-bold tracking-tight text-[var(--color-text-main)]">Analytics Hub</h2>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">
           Deep dive into your predictive performance curves and volume distribution.
         </p>
-      </div>
-
-      <div className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      </section>
+      <section aria-labelledby="stats-charts" className="flex-1 w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* --- GOALS WIDGET --- */}
         <div className="glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover transition-all duration-500 animate-scale-spring">
           <div className="flex justify-between items-center mb-6">
@@ -508,7 +507,7 @@ export default function Stats() {
           <StreakCalendar />
         </div>
 
-      </div>
+      </section>
     </div>
   );
 }

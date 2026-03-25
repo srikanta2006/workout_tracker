@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { WorkoutCard } from '../components/WorkoutCard';
 import { RecoveryWidget } from '../components/RecoveryWidget';
 import { Dumbbell, Calendar, Play, Moon, Trophy, Zap, ChevronRight, Share2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,7 +18,7 @@ export default function Dashboard() {
   const lifetimeVolume = useMemo(() =>
     workouts.reduce((t, s) =>
       t + s.exercises.reduce((et, e) =>
-        et + e.sets.reduce((st, set) => st + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0), 0),
+        et + e.sets.reduce((st, set) => st + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0), 0), 0),
     [workouts]
   );
   const XP_PER_LEVEL = 5000;
@@ -82,8 +81,11 @@ export default function Dashboard() {
   return (
     <div className="w-full h-full flex flex-col gap-8 pb-8">
 
-      {/* --- GAMIFICATION STRIP --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <section aria-labelledby="dashboard-gamification" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <h2 id="dashboard-gamification" className="sr-only">Gamification Overview</h2>
+
+        {/* --- GAMIFICATION STRIP --- */}
+
         {/* XP / Level bar */}
         <div className="lg:col-span-2 animate-scale-spring glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover transition-all duration-500">
           <div className="flex items-center justify-between mb-4">
@@ -142,9 +144,10 @@ export default function Dashboard() {
             <p className="text-sm text-[var(--color-text-muted)] font-medium">Check all your earned achievements.</p>
           </Link>
         )}
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-stretch">
+      <section aria-labelledby="dashboard-routine-status" className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-stretch">
+        <h2 id="dashboard-routine-status" className="sr-only">Routine and Recovery status</h2>
         {activeProg && (
           <div className="animate-scale-spring bg-gradient-to-br from-[var(--color-bg-card)] to-[#1a1a1c] rounded-3xl p-6 shadow-sm border border-[var(--color-border-subtle)] flex flex-col justify-between relative overflow-hidden h-full">
             <div className="absolute -top-10 -right-10 p-4 opacity-5 transform rotate-12 pointer-events-none">
@@ -191,7 +194,7 @@ export default function Dashboard() {
         <div className="h-full w-full animate-scale-spring stagger-1">
           <RecoveryWidget />
         </div>
-      </div>
+      </section>
 
       {/* --- BOTTOM ROW: RECENT WORKOUTS LIST --- */}
       <div className="animate-scale-spring">
@@ -208,7 +211,7 @@ export default function Dashboard() {
           <div className="space-y-3">
             {workouts.slice(0, 10).map((workout, index) => {
               const totalVolume = workout.exercises.reduce((acc, ex) => {
-                const exVolume = ex.sets.reduce((setAcc, set) => setAcc + ((Number(set.reps) || 0) * (Number(set.weight) || 0)), 0);
+                const exVolume = ex.sets.reduce((setAcc, set) => setAcc + (set.completed ? ((Number(set.reps) || 0) * (Number(set.weight) || 0)) : 0), 0);
                 return acc + exVolume;
               }, 0);
 
@@ -328,9 +331,9 @@ export default function Dashboard() {
                       <span className="text-right">Volume</span>
                     </div>
                     {ex.sets.map(set => {
-                      const setVolume = (Number(set.weight) || 0) * (Number(set.reps) || 0);
+                      const setVolume = set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0;
                       return (
-                        <div key={set.id} className="grid grid-cols-4 gap-2 text-sm px-2 py-2 bg-[var(--color-bg-base)] rounded-lg mb-1 text-[var(--color-text-main)]">
+                        <div key={set.id} className={clsx("grid grid-cols-4 gap-2 text-sm px-2 py-2 bg-[var(--color-bg-base)] rounded-lg mb-1 text-[var(--color-text-main)]", !set.completed && "opacity-40")}>
                           <span className="text-[var(--color-text-muted)]">{set.setNumber}</span>
                           <span className="font-medium">{set.weight || '-'}</span>
                           <span className="font-medium">{set.reps || '-'}</span>

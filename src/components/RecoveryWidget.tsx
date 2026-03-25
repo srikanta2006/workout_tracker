@@ -3,6 +3,7 @@ import { differenceInDays, startOfDay } from 'date-fns';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import type { MuscleGroup } from '../types';
 import { Activity } from 'lucide-react';
+import { EXERCISE_DATABASE } from '../data/exercises';
 import clsx from 'clsx';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
@@ -14,17 +15,22 @@ export function RecoveryWidget() {
     const today = startOfDay(new Date());
     
     return MUSCLE_GROUPS.map(group => {
-      // Find the most recent workout for this muscle group
-      // Assuming workouts are sorted by date descending, or we need to find the max date
-      // For now, `find` will return the first match, which might not be the most recent if not sorted.
-      // A more robust solution would be to sort or filter for all matching workouts and then pick the latest.
-      const recentWorkout = workouts.find(w => w.muscleGroups?.includes(group));
+      // Find the most recent workout where at least one exercise of this muscle group was COMPLETED
+      const recentWorkout = workouts.find(w => {
+        return w.exercises.some(ex => {
+          const hasCompleted = ex.sets.some(s => s.completed);
+          if (!hasCompleted) return false;
+          
+          // Check if this exercise belongs to the group we're looking at
+          const officialGroupExercises = EXERCISE_DATABASE[group] || [];
+          return officialGroupExercises.includes(ex.name);
+        });
+      });
       
       let status: 'Fresh' | 'Recovering' | 'Fatigued' = 'Fresh';
       let daysAgo = -1;
 
       if (recentWorkout) {
-        // Parse date reliably without timezone shifts
         const workoutDateStr = recentWorkout.date;
         const [year, month, day] = workoutDateStr.split('-').map(Number);
         const workoutDate = new Date(year, month - 1, day);

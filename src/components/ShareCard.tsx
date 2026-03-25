@@ -11,13 +11,13 @@ interface ShareCardProps {
 
 function sessionVolume(s: WorkoutSession): number {
   return s.exercises.reduce((et, e) =>
-    et + e.sets.reduce((st, set) => st + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
+    et + e.sets.reduce((st, set) => st + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0), 0);
 }
 
 function topLift(s: WorkoutSession): { exercise: string; weight: number } | null {
   let best: { exercise: string; weight: number } | null = null;
   s.exercises.forEach(e => {
-    e.sets.forEach(set => {
+    e.sets.filter(set => set.completed).forEach(set => {
       const w = Number(set.weight) || 0;
       if (!best || w > best.weight) best = { exercise: e.name, weight: w };
     });
@@ -31,7 +31,7 @@ export function ShareCard({ workout, onClose }: ShareCardProps) {
 
   const volume = sessionVolume(workout);
   const lift = topLift(workout);
-  const totalSets = workout.exercises.reduce((t, e) => t + e.sets.length, 0);
+  const totalSets = workout.exercises.reduce((t, e) => t + e.sets.filter(s => s.completed).length, 0);
   const date = new Date(workout.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const handleDownload = async () => {

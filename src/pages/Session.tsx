@@ -26,14 +26,15 @@ export default function Session() {
 
   return (
     <div className="w-full h-full flex flex-col pb-8">
-      <div className="mb-8 px-1">
-        <h2 className="text-3xl font-bold tracking-tight text-[var(--color-text-main)]">Start Session</h2>
+      <section aria-labelledby="session-title" className="mb-8 px-1">
+        <h2 id="session-title" className="text-3xl font-bold tracking-tight text-[var(--color-text-main)]">Start Session</h2>
         <p className="text-[var(--color-text-muted)] mt-1 font-medium">
           Ready to train? Choose your path.
         </p>
-      </div>
+      </section>
 
-      <div className="flex-1 w-full max-w-2xl mx-auto flex flex-col gap-6">
+      <section aria-labelledby="session-options" className="flex-1 w-full max-w-2xl mx-auto flex flex-col gap-6">
+        <h3 id="session-options" className="sr-only">Session options</h3>
 
         {/* Pathway 1: Active Routine */}
         <div className="animate-scale-spring bg-gradient-to-br from-[var(--color-bg-card)] to-[#1a1a1c] border border-[var(--color-border-subtle)] rounded-3xl p-6 shadow-sm relative overflow-hidden">
@@ -97,7 +98,7 @@ export default function Session() {
 
         {/* Pathway 2: Freestyle */}
         <button
-          onClick={() => navigate('/workout')}
+          onClick={() => navigate('/workout?mode=freestyle')}
           className="animate-fade-in-up stagger-1 bg-[var(--color-bg-card)] border-2 border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)]/50 rounded-3xl p-6 flex items-center gap-4 group transition-all active:scale-[0.98]"
         >
           <div className="bg-[var(--color-bg-base)] p-4 rounded-full group-hover:bg-[var(--color-brand-500)]/10 transition-colors">
@@ -109,7 +110,7 @@ export default function Session() {
           </div>
         </button>
 
-      </div>
+      </section>
     </div>
   );
 }

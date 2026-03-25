@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import { subDays, startOfDay, format } from 'date-fns';
+import { EXERCISE_DATABASE } from '../data/exercises';
 
 
 type MuscleZone = {
@@ -69,7 +70,23 @@ export function MuscleHeatmap() {
       const d = startOfDay(new Date(w.date));
       const diffDays = (today.getTime() - d.getTime()) / 86400000;
       if (diffDays >= 0 && diffDays < 7) {
-        w.muscleGroups.forEach(mg => {
+        // Track unique muscle groups HIT in this session (at least one completed set)
+        const hitInSession = new Set<string>();
+        
+        w.exercises.forEach(ex => {
+          const hasCompleted = ex.sets.some(s => s.completed);
+          if (hasCompleted) {
+            // Find official muscle group
+            for (const [group, exercises] of Object.entries(EXERCISE_DATABASE)) {
+              if (exercises.includes(ex.name)) {
+                hitInSession.add(group);
+                break;
+              }
+            }
+          }
+        });
+
+        hitInSession.forEach(mg => {
           counts[mg] = (counts[mg] || 0) + 1;
         });
       }

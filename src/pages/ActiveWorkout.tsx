@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import { WorkoutTimer } from '../components/WorkoutTimer';
 import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
-import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
@@ -15,12 +15,13 @@ export default function ActiveWorkout() {
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
   const isTemplateMode = searchParams.get('mode') === 'template';
+  const isFreestyleMode = searchParams.get('mode') === 'freestyle';
   const { workouts, routines, addWorkout, updateWorkout, addRoutine, favoriteExercises, toggleFavoriteExercise, activeProgram, programs } = useWorkoutState();
   
   const existingWorkout = id ? workouts.find(w => w.id === id) : null;
   // If ?routineId= is passed, use it. OTHERWISE, check if there's an active program and find today's routine!
   let autoRoutineId = routineId;
-  if (!existingWorkout && !autoRoutineId && activeProgram) {
+  if (!existingWorkout && !autoRoutineId && activeProgram && !isFreestyleMode) {
     const activeProg = programs.find(p => p.id === activeProgram.programId);
     if (activeProg) {
       const today = new Date();
@@ -63,6 +64,24 @@ export default function ActiveWorkout() {
 
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [templateName, setTemplateName] = useState(() => existingRoutine?.name || '');
+  const [hasInitializedRoutine, setHasInitializedRoutine] = useState(false);
+
+  // Sync exercises if routine data loads later (async Supabase fetch)
+  useEffect(() => {
+    if (existingRoutine && !hasInitializedRoutine && !existingWorkout) {
+      setExercises(existingRoutine.exercises.map(ex => ({
+        ...ex,
+        id: crypto.randomUUID(),
+        sets: ex.sets.map(s => ({
+          ...s,
+          id: crypto.randomUUID(),
+          completed: false
+        }))
+      })));
+      setTemplateName(existingRoutine.name);
+      setHasInitializedRoutine(true);
+    }
+  }, [existingRoutine, hasInitializedRoutine, existingWorkout]);
 
   // Dynamic Datalist Options - Combine all selected muscle groups into a single array
   const availableExercises = muscleGroups.includes('Full Body') 
@@ -136,6 +155,21 @@ export default function ActiveWorkout() {
     setExercises(exercises.filter(ex => ex.id !== id));
   };
 
+  const handleMoveExercise = (id: string, direction: 'up' | 'down') => {
+    setExercises(prev => {
+      const index = prev.findIndex(ex => ex.id === id);
+      if (index === -1) return prev;
+      if (direction === 'up' && index === 0) return prev;
+      if (direction === 'down' && index === prev.length - 1) return prev;
+
+      const newExercises = [...prev];
+      const offset = direction === 'up' ? -1 : 1;
+      const [movedExercise] = newExercises.splice(index, 1);
+      newExercises.splice(index + offset, 0, movedExercise);
+      return newExercises;
+    });
+  };
+
   const handleUpdateExerciseName = (id: string, name: string) => {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, name } : ex));
   };
@@ -161,6 +195,29 @@ export default function ActiveWorkout() {
       if (ex.id === exerciseId) {
         const nextSets = ex.sets.filter(s => s.id !== setId).map((s, idx) => ({ ...s, setNumber: idx + 1 }));
         return { ...ex, sets: nextSets };
+      }
+      return ex;
+    }));
+  };
+
+  const handleMoveSet = (exerciseId: string, setId: string, direction: 'up' | 'down') => {
+    setExercises(prev => prev.map(ex => {
+      if (ex.id === exerciseId) {
+        const index = ex.sets.findIndex(s => s.id === setId);
+        if (index === -1) return ex;
+        if (direction === 'up' && index === 0) return ex;
+        if (direction === 'down' && index === ex.sets.length - 1) return ex;
+
+        const newSets = [...ex.sets];
+        const offset = direction === 'up' ? -1 : 1;
+        const [movedSet] = newSets.splice(index, 1);
+        newSets.splice(index + offset, 0, movedSet);
+        
+        // Re-map set numbers
+        return {
+          ...ex,
+          sets: newSets.map((s, idx) => ({ ...s, setNumber: idx + 1 }))
+        };
       }
       return ex;
     }));
@@ -359,13 +416,33 @@ export default function ActiveWorkout() {
                 Exercise {idx + 1}
               </span>
               
-              <button 
-                onClick={() => handleRemoveExercise(exercise.id)}
-                className="absolute top-2 right-2 p-1 text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
-                aria-label="Remove exercise"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <div className="absolute top-2 right-2 flex items-center gap-1">
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => handleMoveExercise(exercise.id, 'up')}
+                    disabled={idx === 0}
+                    className="p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-20 transition-colors"
+                    aria-label="Move exercise up"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveExercise(exercise.id, 'down')}
+                    disabled={idx === exercises.length - 1}
+                    className="p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-20 transition-colors"
+                    aria-label="Move exercise down"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <button 
+                  onClick={() => handleRemoveExercise(exercise.id)}
+                  className="p-2 text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
+                  aria-label="Remove exercise"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
 
               <div className="flex gap-2 items-center mb-1 border-b border-[var(--color-border-subtle)] pb-2 relative">
                 <input 
@@ -441,8 +518,22 @@ export default function ActiveWorkout() {
                         </div>
                       )}
                       
-                      <div className="col-span-2 text-center font-medium text-[var(--color-text-muted)] flex items-center justify-center">
-                        {set.setNumber}
+                      <div className="col-span-2 flex flex-col items-center justify-center">
+                        <button
+                          onClick={() => handleMoveSet(exercise.id, set.id, 'up')}
+                          disabled={set.setNumber === 1}
+                          className="p-0 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-0 transition-colors"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                        </button>
+                        <span className="text-xs font-bold leading-none my-0.5">{set.setNumber}</span>
+                        <button
+                          onClick={() => handleMoveSet(exercise.id, set.id, 'down')}
+                          disabled={set.setNumber === exercise.sets.length}
+                          className="p-0 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-0 transition-colors"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
                       </div>
 
                       <div className="col-span-4 relative">

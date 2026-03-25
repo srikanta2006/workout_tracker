@@ -18,9 +18,12 @@ export function Layout() {
 
   return (
     <div className="flex h-screen bg-[var(--color-bg-base)] text-[var(--color-text-main)] w-full overflow-hidden font-sans">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-[var(--color-bg-card)] focus:text-[var(--color-text-main)] focus:px-3 focus:py-2 focus:rounded-md">
+        Skip to main content
+      </a>
       
       {/* --- DESKTOP / TABLET SLIM NAVIGATION --- */}
-      <aside className="hidden md:flex flex-col w-20 lg:w-64 h-full bg-[var(--color-bg-card)] border-r border-[var(--color-border-subtle)] flex-shrink-0 transition-all duration-300">
+      <aside className="hidden md:flex flex-col w-20 lg:w-64 h-full bg-[var(--color-bg-card)] border-r border-[var(--color-border-subtle)] flex-shrink-0 transition-all duration-300" aria-label="Primary navigation">
         <div className="p-6 flex items-center justify-center lg:justify-start gap-3 border-b border-[var(--color-border-subtle)]">
           <Dumbbell className="w-8 h-8 text-[var(--color-brand-500)] flex-shrink-0" />
           <h1 className="text-xl font-bold tracking-tight hidden lg:block">MaxOut</h1>
@@ -40,8 +43,10 @@ export function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-label={item.name}
+                aria-current={isActive ? 'page' : undefined}
                 className={clsx(
-                  "flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-xl font-semibold transition-all active:scale-95 group",
+                  "flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-xl font-semibold transition-all active:scale-95 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand-500)]",
                   isActive 
                     ? "bg-[var(--color-brand-500)] text-white shadow-md" 
                     : "text-[var(--color-text-muted)] hover:bg-[var(--color-border-subtle)] hover:text-[var(--color-text-main)]"
@@ -57,11 +62,11 @@ export function Layout() {
       </aside>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <main className="flex-1 h-full overflow-y-auto w-full custom-scrollbar relative">
+      <main id="main-content" className="flex-1 h-full overflow-y-auto w-full custom-scrollbar relative" tabIndex={-1} aria-label="Main application content">
         {/* Mobile Header (Hidden on Desktop) */}
         <header className="md:hidden sticky top-0 z-40 bg-[var(--color-bg-card)]/90 backdrop-blur-md border-b border-[var(--color-border-subtle)] px-4 py-3 flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
-          <h1 className="text-xl font-bold tracking-tight">MaxOut</h1>
+          <h1 className="text-xl font-bold tracking-tight flex-1">MaxOut</h1>
         </header>
 
         <div className="w-full max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-12 md:p-8">
