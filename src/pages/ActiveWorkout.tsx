@@ -16,12 +16,19 @@ export default function ActiveWorkout() {
   const routineId = searchParams.get('routineId');
   const isTemplateMode = searchParams.get('mode') === 'template';
   const isFreestyleMode = searchParams.get('mode') === 'freestyle';
-  const { workouts, routines, addWorkout, updateWorkout, addRoutine, favoriteExercises, toggleFavoriteExercise, activeProgram, programs } = useWorkoutState();
+  const editRoutineId = searchParams.get('editRoutineId');
+  const { 
+    workouts, routines, addWorkout, updateWorkout, addRoutine, updateRoutine,
+    favoriteExercises, toggleFavoriteExercise, activeProgram, programs,
+    startRestTimer, setIsPaused
+  } = useWorkoutState();
   
   const existingWorkout = id ? workouts.find(w => w.id === id) : null;
+  const editingRoutine = editRoutineId ? routines.find(r => r.id === editRoutineId) : null;
+  
   // If ?routineId= is passed, use it. OTHERWISE, check if there's an active program and find today's routine!
   let autoRoutineId = routineId;
-  if (!existingWorkout && !autoRoutineId && activeProgram && !isFreestyleMode) {
+  if (!existingWorkout && !autoRoutineId && activeProgram && !isFreestyleMode && !editingRoutine) {
     const activeProg = programs.find(p => p.id === activeProgram.programId);
     if (activeProg) {
       const today = new Date();
@@ -40,10 +47,11 @@ export default function ActiveWorkout() {
   const existingRoutine = autoRoutineId ? routines.find(r => r.id === autoRoutineId) : null;
 
   const [date, setDate] = useState(() => existingWorkout?.date || new Date().toISOString().split('T')[0]);
-  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>(() => existingWorkout?.muscleGroups || existingRoutine?.muscleGroups || ['Chest']);
+  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>(() => existingWorkout?.muscleGroups || existingRoutine?.muscleGroups || editingRoutine?.muscleGroups || ['Chest']);
   
   const initialExercises = () => {
     if (existingWorkout) return existingWorkout.exercises;
+    if (editingRoutine) return editingRoutine.exercises.map(ex => ({ ...ex, id: crypto.randomUUID() }));
     if (existingRoutine) {
       return existingRoutine.exercises.map(ex => ({
         ...ex,
@@ -63,7 +71,7 @@ export default function ActiveWorkout() {
   };
 
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
-  const [templateName, setTemplateName] = useState(() => existingRoutine?.name || '');
+  const [templateName, setTemplateName] = useState(() => existingRoutine?.name || editingRoutine?.name || '');
   const [hasInitializedRoutine, setHasInitializedRoutine] = useState(false);
 
   // Sync exercises if routine data loads later (async Supabase fetch)
@@ -244,8 +252,9 @@ export default function ActiveWorkout() {
 
       // Auto-save logic ONLY if ticking a set to true in a real workout
       if (field === 'completed' && value === true && !isTemplateMode) {
-        // Trigger Auto-Rest Event
-        window.dispatchEvent(new CustomEvent('trigger-rest', { detail: { seconds: 90 } }));
+        // Trigger Auto-Rest
+        startRestTimer(90);
+        setIsPaused(false); // Ensure main stopwatch is running if they start lifting
 
         if (existingWorkout) {
           updateWorkout(existingWorkout.id, { id: existingWorkout.id, date, muscleGroups, exercises: updated });
@@ -309,7 +318,13 @@ export default function ActiveWorkout() {
       exercises: exercises.map(ex => ({ ...ex })) // Deep copy exercises including sets!
     };
 
-    addRoutine(newRoutine);
+    if (editingRoutine) {
+      updateRoutine(editingRoutine.id, { ...newRoutine, id: editingRoutine.id });
+      alert('Template updated!');
+    } else {
+      addRoutine(newRoutine);
+    }
+
     if (isTemplateMode) {
       navigate('/routines');
     } else {
@@ -328,9 +343,9 @@ export default function ActiveWorkout() {
       </datalist>
 
       <div className="mb-6 px-1 border-b border-[var(--color-border-subtle)] pb-4">
-        <h2 className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
+        <h2 id="planner-title" className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-[var(--color-brand-500)]" />
-          {isTemplateMode ? 'Create Day Template' : (existingWorkout ? 'Edit Workout' : (existingRoutine ? `Routine: ${existingRoutine.name}` : 'Log Workout'))}
+          {isTemplateMode ? (editingRoutine ? 'Edit Day Template' : 'Create Day Template') : (existingWorkout ? 'Edit Workout' : (existingRoutine ? `Routine: ${existingRoutine.name}` : 'Log Workout'))}
         </h2>
         
         <div className={`grid ${isTemplateMode ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>

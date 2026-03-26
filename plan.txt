@@ -1,0 +1,20 @@
+MaxOut: Future Roadmap & Feature Suggestions
+To elevate MaxOut to a truly premium, "state-of-the-art" fitness platform, I suggest the following technical and UX enhancements:
+
+1. Smart Training Utilities
+Intelligent Rest Timer: Automatically trigger a customizable countdown after a set is checked. Include a subtle "ping" or haptic feedback when it's time for the next set.
+Plate Calculator: A quick-access tool inside the active workout that shows exactly which plates (20kg, 10kg, etc.) to load on each side of the bar for a target weight.
+Warm-up Generator: Based on your target working set, automatically calculate and add 3-4 warm-up sets with specific weights and rep counts.
+2. Advanced Analytics & Progression
+Progressive Overload Tracker: Visual indicators showing if your current set is a "Match", "Improved", or "PR" compared to your last session for that specific exercise.
+Volume Radar 2.0: Compare current week's volume per muscle group against your 4-week average to identify areas of overtraining or neglect.
+1RM Projection History: A chart showing how your estimated 1-Rep Max for key lifts (Squat, Bench, Deadlift) has evolved over time.
+3. Experience & Polish
+Voice-Activated Logging: "Hey MaxOut, log 100 kilos for 8 reps." Perfect for when you're under the bar or wearing gloves.
+Offline First Sync: Implement a local-first architecture (IndexedDB) that allows for seamless logging even in gym basements with no signal, syncing to Supabase once a connection is restored.
+Apple Watch / Wear OS Companion: A focused "Watch App" for checking off sets and seeing the rest timer without pulling out your phone.
+4. Social & Community
+Workout "Recap" Stories: Generate high-quality, vertically-oriented summary cards (similar to the ShareCard but optimized for Instagram/Snapchat stories) with dynamic stats.
+Community Challenges: Global or friend-based leaderboards for specific metrics like "Most Reps in a Month" or "Volume Milestones".
+Which of these features would you like to prioritize next?
+

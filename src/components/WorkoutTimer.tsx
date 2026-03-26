@@ -1,42 +1,52 @@
 import { useState, useEffect } from 'react';
 import { Timer, X, Play, Pause, RotateCcw, Clock } from 'lucide-react';
+import { useWorkout } from '../context/WorkoutContext';
 import clsx from 'clsx';
 
 export function WorkoutTimer() {
-  // --- Global Stopwatch State ---
-  const [elapsed, setElapsed] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const { 
+    elapsed, isPaused, setIsPaused, setElapsed,
+    restTimeLeft, startRestTimer, addRestTime, stopRestTimer 
+  } = useWorkout();
 
-  // --- Rest Timer State ---
-  const [restTimeLeft, setRestTimeLeft] = useState<number | null>(null);
+  const [hasPinged, setHasPinged] = useState(false);
 
-  // Stopwatch Effect
+  // Audio Notification
+  const playPing = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5); // A4
+      
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+      console.warn("Audio Context failed", e);
+    }
+  };
+
   useEffect(() => {
-    if (isPaused) return;
-    const interval = setInterval(() => {
-      setElapsed(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isPaused]);
-
-  // Rest Countdown Effect
-  useEffect(() => {
-    if (restTimeLeft === null || restTimeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setRestTimeLeft(prev => (prev && prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [restTimeLeft]);
-
-  // Global Listeners for Auto-Rest
-  useEffect(() => {
-    const handleAutoRest = (e: CustomEvent) => {
-      const seconds = e.detail?.seconds || 90;
-      setRestTimeLeft(seconds);
-    };
-    window.addEventListener('trigger-rest', handleAutoRest as EventListener);
-    return () => window.removeEventListener('trigger-rest', handleAutoRest as EventListener);
-  }, []);
+    if (restTimeLeft === 0 && !hasPinged) {
+      playPing();
+      setHasPinged(true);
+      // Haptic feedback
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+    } else if (restTimeLeft !== 0) {
+      setHasPinged(false);
+    }
+  }, [restTimeLeft, hasPinged]);
 
   // Helpers
   const formatTime = (totalSeconds: number) => {
@@ -47,8 +57,8 @@ export function WorkoutTimer() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const addRestTime = (seconds: number) => {
-    setRestTimeLeft(prev => (prev ? prev + seconds : seconds));
+  const addExtraRest = (seconds: number) => {
+    addRestTime(seconds);
   };
 
   const isResting = restTimeLeft !== null;
@@ -92,13 +102,13 @@ export function WorkoutTimer() {
         <div className="pt-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] block mb-2">Start Rest Timer</span>
           <div className="flex gap-2">
-            <button onClick={() => addRestTime(60)} className="flex-1 py-2 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl text-xs font-bold text-[var(--color-text-main)] shadow-sm hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-600)] transition-colors active:scale-95">
+            <button onClick={() => startRestTimer(60)} className="flex-1 py-2 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl text-xs font-bold text-[var(--color-text-main)] shadow-sm hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-600)] transition-colors active:scale-95">
               1:00
             </button>
-            <button onClick={() => addRestTime(90)} className="flex-1 py-2 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl text-xs font-bold text-[var(--color-text-main)] shadow-sm hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-600)] transition-colors active:scale-95">
+            <button onClick={() => startRestTimer(90)} className="flex-1 py-2 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl text-xs font-bold text-[var(--color-text-main)] shadow-sm hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-600)] transition-colors active:scale-95">
               1:30
             </button>
-            <button onClick={() => addRestTime(120)} className="flex-1 py-2 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl text-xs font-bold text-[var(--color-text-main)] shadow-sm hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-600)] transition-colors active:scale-95">
+            <button onClick={() => startRestTimer(120)} className="flex-1 py-2 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl text-xs font-bold text-[var(--color-text-main)] shadow-sm hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-600)] transition-colors active:scale-95">
               2:00
             </button>
           </div>
@@ -129,14 +139,14 @@ export function WorkoutTimer() {
             <div className="flex items-center gap-1 ml-auto">
               {!restFinished && (
                 <button 
-                  onClick={() => addRestTime(30)} 
+                  onClick={() => addExtraRest(30)} 
                   className="px-2 py-1 bg-white/50 dark:bg-black/30 text-[var(--color-text-main)] rounded text-xs font-bold border border-[var(--color-border-subtle)] hover:bg-[var(--color-brand-500)] hover:text-white transition-colors active:scale-95"
                 >
                   +30s
                 </button>
               )}
               <button 
-                onClick={() => setRestTimeLeft(null)} 
+                onClick={stopRestTimer} 
                 className="p-1 px-2 bg-white/50 dark:bg-black/30 text-[var(--color-text-muted)] hover:text-red-500 hover:border-red-500 border border-[var(--color-border-subtle)] rounded transition-colors active:scale-95"
               >
                 <X className="w-4 h-4" />

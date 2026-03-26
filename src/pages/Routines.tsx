@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X, Edit2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Program, Routine } from '../types';
 import clsx from 'clsx';
@@ -130,12 +130,21 @@ export default function Routines() {
                           </h3>
                           <div className="text-sm text-[var(--color-text-muted)] font-medium">{routine.muscleGroups?.join(', ')} Focus</div>
                         </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id); }}
-                          className="p-2 text-[var(--color-text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-300"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <Link 
+                            to={`/workout?mode=template&editRoutineId=${routine.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] opacity-0 group-hover:opacity-100 transition-all duration-300"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </Link>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id); }}
+                            className="p-2 text-[var(--color-text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-300"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                       
                       <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border-subtle)]/30">
@@ -395,13 +404,19 @@ export default function Routines() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-white/5">
+            <div className="p-6 border-t border-white/5 flex gap-3">
               <button 
                 onClick={() => setSelectedRoutine(null)}
-                className="w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all active:scale-[0.98]"
+                className="flex-1 py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all active:scale-[0.98]"
               >
                 Close
               </button>
+              <Link 
+                to={`/workout?mode=template&editRoutineId=${selectedRoutine.id}`}
+                className="flex-[2] py-4 bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white rounded-2xl font-bold transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+              >
+                <Edit2 className="w-5 h-5" /> Edit Template
+              </Link>
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ interface WorkoutContextType {
   deleteWorkout: (id: string) => Promise<void>;
   routines: Routine[];
   addRoutine: (routine: Routine) => Promise<void>;
+  updateRoutine: (id: string, updated: Routine) => Promise<void>;
   deleteRoutine: (id: string) => Promise<void>;
   bodyweights: BodyweightRecord[];
   addBodyweight: (record: BodyweightRecord) => Promise<void>;
@@ -25,6 +26,15 @@ interface WorkoutContextType {
   addGoal: (goal: FitnessGoal) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   isLoading: boolean;
+  // Timer State
+  elapsed: number;
+  isPaused: boolean;
+  setIsPaused: (val: boolean) => void;
+  setElapsed: (val: number) => void;
+  restTimeLeft: number | null;
+  startRestTimer: (seconds: number) => void;
+  addRestTime: (seconds: number) => void;
+  stopRestTimer: () => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -41,6 +51,32 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [activeProgram, setActiveProgramState] = useState<ActiveProgramState | null>(null);
   const [goals, setGoals] = useState<FitnessGoal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Timer State
+  const [elapsed, setElapsed] = useState(0);
+  const [isPaused, setIsPaused] = useState(true);
+  const [restTimeLeft, setRestTimeLeft] = useState<number | null>(null);
+
+  // Global Timer Effects
+  useEffect(() => {
+    let interval: any;
+    if (!isPaused) {
+      interval = setInterval(() => {
+        setElapsed(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  useEffect(() => {
+    let interval: any;
+    if (restTimeLeft !== null && restTimeLeft > 0) {
+      interval = setInterval(() => {
+        setRestTimeLeft(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [restTimeLeft]);
 
   useEffect(() => {
     if (!uid) {
@@ -147,6 +183,14 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setRoutines(prev => [routine, ...prev]);
   };
 
+  const updateRoutine = async (id: string, updated: Routine) => {
+    if (!uid) return;
+    await supabase.from('routines').update({
+      name: updated.name, muscle_groups: updated.muscleGroups, exercises: updated.exercises,
+    }).eq('id', id).eq('user_id', uid);
+    setRoutines(prev => prev.map(r => r.id === id ? updated : r));
+  };
+
   const deleteRoutine = async (id: string) => {
     if (!uid) return;
     await supabase.from('routines').delete().eq('id', id).eq('user_id', uid);
@@ -223,16 +267,22 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setGoals(prev => prev.filter(g => g.id !== id));
   };
 
+  const startRestTimer = (seconds: number) => setRestTimeLeft(seconds);
+  const addRestTime = (seconds: number) => setRestTimeLeft(prev => (prev !== null ? prev + seconds : seconds));
+  const stopRestTimer = () => setRestTimeLeft(null);
+
   return (
     <WorkoutContext.Provider value={{
       workouts, addWorkout, updateWorkout, deleteWorkout,
-      routines, addRoutine, deleteRoutine,
+      routines, addRoutine, updateRoutine, deleteRoutine,
       bodyweights, addBodyweight, deleteBodyweight,
       favoriteExercises, toggleFavoriteExercise,
       programs, addProgram, deleteProgram,
       activeProgram, setActiveProgram,
       goals, addGoal, deleteGoal,
-      isLoading
+      isLoading,
+      elapsed, isPaused, setIsPaused, setElapsed,
+      restTimeLeft, startRestTimer, addRestTime, stopRestTimer
     }}>
       {children}
     </WorkoutContext.Provider>
