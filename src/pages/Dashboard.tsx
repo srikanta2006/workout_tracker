@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import { RecoveryWidget } from '../components/RecoveryWidget';
-import { Dumbbell, Calendar, Play, Moon, Trophy, Zap, ChevronRight, Share2 } from 'lucide-react';
+import { Dumbbell, Calendar, Play, Moon, Trophy, Zap, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { differenceInDays, startOfDay, format, parseISO } from 'date-fns';
 import clsx from 'clsx';
 import { computeAchievements } from '../data/achievements';
-import { ShareCard } from '../components/ShareCard';
+import { StoryCard } from '../components/StoryCard';
 
 export default function Dashboard() {
   const { workouts, deleteWorkout, activeProgram, programs, routines } = useWorkoutState();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
-  const [shareWorkoutId, setShareWorkoutId] = useState<string | null>(null);
+  const [storyWorkoutId, setStoryWorkoutId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // --- XP / Gamification Logic ---
@@ -36,9 +36,9 @@ export default function Dashboard() {
 
   // Approaching achievement
   const approachingAchievement = useMemo(() => {
-    const all = computeAchievements(workouts);
+    const all = computeAchievements(workouts, activeProgram, programs);
     return all.filter(a => !a.unlocked && a.progress > 0).sort((a, b) => b.progress - a.progress)[0] || null;
-  }, [workouts]);
+  }, [workouts, activeProgram, programs]);
 
 
   // Active Program Logic
@@ -255,11 +255,12 @@ export default function Dashboard() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShareWorkoutId(workout.id);
+                        setStoryWorkoutId(workout.id);
                       }}
-                      className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] transition-colors rounded-lg hover:bg-[var(--color-brand-500)]/10"
+                      className="p-2 text-[var(--color-text-muted)] hover:text-orange-500 transition-colors rounded-lg hover:bg-orange-500/10"
+                      title="Share to Story"
                     >
-                      <Share2 className="w-4 h-4" />
+                      <Zap className="w-4 h-4" />
                     </button>
                     <Link
                       to={`/workout/${workout.id}`}
@@ -299,12 +300,12 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setShareWorkoutId(workout.id)}
-                    className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-4 py-2 rounded-xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors flex items-center gap-2"
-                  >
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
+                    <button
+                      onClick={() => setStoryWorkoutId(workout.id)}
+                      className="text-orange-500 hover:text-white text-sm font-medium px-4 py-2 rounded-xl border border-[var(--color-border-subtle)] hover:border-orange-500 hover:bg-orange-500 transition-colors flex items-center gap-2"
+                    >
+                      <Zap className="w-4 h-4" /> Story
+                    </button>
                   <Link
                     to={`/workout/${workout.id}`}
                     className="text-[var(--color-brand-500)] hover:text-white text-sm font-medium px-4 py-2 rounded-xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)] transition-colors"
@@ -349,10 +350,10 @@ export default function Dashboard() {
         })()}
       </div>
 
-      {/* Share Card Modal */}
-      {shareWorkoutId && (() => {
-        const w = workouts.find(x => x.id === shareWorkoutId);
-        return w ? <ShareCard workout={w} onClose={() => setShareWorkoutId(null)} /> : null;
+      {/* Story Card Modal */}
+      {storyWorkoutId && (() => {
+        const w = workouts.find(x => x.id === storyWorkoutId);
+        return w ? <StoryCard workout={w} onClose={() => setStoryWorkoutId(null)} /> : null;
       })()}
     </div>
   );

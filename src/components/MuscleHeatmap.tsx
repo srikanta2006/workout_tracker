@@ -72,7 +72,7 @@ export function MuscleHeatmap() {
       if (diffDays >= 0 && diffDays < 7) {
         // Track unique muscle groups HIT in this session (at least one completed set)
         const hitInSession = new Set<string>();
-        
+
         w.exercises.forEach(ex => {
           const hasCompleted = ex.sets.some(s => s.completed);
           if (hasCompleted) {

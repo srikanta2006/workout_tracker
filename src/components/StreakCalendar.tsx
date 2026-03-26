@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import { format, subDays, startOfDay } from 'date-fns';
+import { calculateStreak } from '../lib/streak';
 import clsx from 'clsx';
 
-function getIntensityClass(count: number): string {
+function getIntensityClass(count: number, isRestDay: boolean): string {
+  if (isRestDay) return 'bg-blue-500/20 border border-blue-500/30';
   if (count === 0) return 'bg-[var(--color-border-subtle)] opacity-40';
   if (count === 1) return 'bg-[var(--color-brand-500)]/30';
   if (count === 2) return 'bg-[var(--color-brand-500)]/60';
@@ -11,10 +13,14 @@ function getIntensityClass(count: number): string {
 }
 
 export function StreakCalendar() {
-  const { workouts } = useWorkoutState();
+  const { workouts, activeProgram, programs } = useWorkoutState();
 
   const today = startOfDay(new Date());
   const DAYS = 364;
+
+  const streakStats = useMemo(() => 
+    calculateStreak(workouts, activeProgram, programs),
+  [workouts, activeProgram, programs]);
 
   // Build a map of date → session count
   const dayMap = useMemo(() => {
@@ -31,38 +37,17 @@ export function StreakCalendar() {
     return Array.from({ length: DAYS }, (_, i) => {
       const date = subDays(today, DAYS - 1 - i);
       const key = format(date, 'yyyy-MM-dd');
-      return { date, key, count: dayMap[key] || 0 };
+      return { 
+        date, 
+        key, 
+        count: dayMap[key] || 0,
+        isRestDay: streakStats.restDays.includes(key)
+      };
     });
-  }, [dayMap, today]);
+  }, [dayMap, today, streakStats.restDays]);
 
-  // Current streak
-  const currentStreak = useMemo(() => {
-    let streak = 0;
-    let cursor = today;
-    while (true) {
-      const key = format(cursor, 'yyyy-MM-dd');
-      if (!dayMap[key]) break;
-      streak++;
-      cursor = subDays(cursor, 1);
-    }
-    return streak;
-  }, [dayMap, today]);
-
-  // Longest streak
-  const longestStreak = useMemo(() => {
-    const sorted = [...workouts].map(w => w.date.slice(0, 10)).sort();
-    const unique = [...new Set(sorted)];
-    let longest = 0, current = 0;
-    for (let i = 0; i < unique.length; i++) {
-      if (i === 0) { current = 1; }
-      else {
-        const diff = (new Date(unique[i]).getTime() - new Date(unique[i - 1]).getTime()) / 86400000;
-        current = diff === 1 ? current + 1 : 1;
-      }
-      longest = Math.max(longest, current);
-    }
-    return longest;
-  }, [workouts]);
+  const currentStreak = streakStats.currentStreak;
+  const longestStreak = streakStats.longestStreak;
 
   // Group cells into weeks (columns of 7)
   const weeks = useMemo(() => {
@@ -126,22 +111,35 @@ export function StreakCalendar() {
               {week.map(cell => (
                 <div
                   key={cell.key}
-                  title={`${cell.key}: ${cell.count} session${cell.count !== 1 ? 's' : ''}`}
+                  title={`${cell.key}: ${cell.isRestDay ? 'Rest Day' : cell.count + ' session' + (cell.count !== 1 ? 's' : '')}`}
                   className={clsx(
-                    'w-[11px] h-[11px] rounded-[2px] transition-transform hover:scale-125 cursor-default flex-shrink-0',
-                    getIntensityClass(cell.count)
+                    'w-[11px] h-[11px] rounded-[2px] transition-transform hover:scale-125 cursor-default flex-shrink-0 relative group',
+                    getIntensityClass(cell.count, cell.isRestDay)
                   )}
-                />
+                >
+                  {cell.isRestDay && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <div className="w-1 h-1 rounded-full bg-blue-400/50" />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ))}
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-2 mt-3 justify-end">
+        <div className="flex items-center gap-3 mt-3 justify-end">
+          <div className="flex items-center gap-1">
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+              <div className="w-0.5 h-0.5 rounded-full bg-blue-400" />
+            </div>
+            <span className="text-[10px] text-[var(--color-text-muted)]">Rest Day</span>
+          </div>
+          <div className="h-3 w-px bg-[var(--color-border-subtle)] mx-1" />
           <span className="text-[10px] text-[var(--color-text-muted)]">Less</span>
           {[0, 1, 2, 3].map(n => (
-            <div key={n} className={clsx('w-[10px] h-[10px] rounded-[2px]', getIntensityClass(n))} />
+            <div key={n} className={clsx('w-[10px] h-[10px] rounded-[2px]', getIntensityClass(n, false))} />
           ))}
           <span className="text-[10px] text-[var(--color-text-muted)]">More</span>
         </div>

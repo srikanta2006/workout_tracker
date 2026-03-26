@@ -14,11 +14,11 @@ function getBarColor(progress: number): string {
 }
 
 export default function Achievements() {
-  const { workouts } = useWorkoutState();
+  const { workouts, activeProgram, programs } = useWorkoutState();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | 'All'>('All');
   const [showAll, setShowAll] = useState(false);
 
-  const achievements = useMemo(() => computeAchievements(workouts), [workouts]);
+  const achievements = useMemo(() => computeAchievements(workouts, activeProgram, programs), [workouts, activeProgram, programs]);
 
   // Unlocked badges
   const unlocked = achievements.filter(a => a.unlocked);
@@ -89,11 +89,7 @@ export default function Achievements() {
                   </span>
                 </div>
                 <p className="font-bold text-xs text-[var(--color-text-main)] leading-tight mb-1">{a.name}</p>
-                {a.getHint && (
-                  <p className="text-[10px] text-[var(--color-text-muted)] mb-2 leading-tight">
-                    {a.getHint(workouts)}
-                  </p>
-                )}
+                    {a.getHint && a.getHint(workouts, activeProgram, programs)}
                 <div className="h-1.5 bg-[var(--color-bg-base)] rounded-full overflow-hidden mt-auto">
                   <div
                     className={clsx('h-full bg-gradient-to-r rounded-full transition-all duration-700', getBarColor(a.progress))}

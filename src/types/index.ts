@@ -21,6 +21,7 @@ export interface WorkoutSession {
   date: string; // ISO string format
   muscleGroups: MuscleGroup[];
   exercises: Exercise[];
+  duration?: number; // In seconds
 }
 
 export interface Routine {

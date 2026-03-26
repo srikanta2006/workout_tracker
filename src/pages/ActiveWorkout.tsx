@@ -4,8 +4,9 @@ import { useWorkoutState } from '../hooks/useWorkoutState';
 import { WorkoutTimer } from '../components/WorkoutTimer';
 import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
-import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown, Flame } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown, Flame, Zap } from 'lucide-react';
 import { calculateWarmupSets, warmupModel } from '../lib/warmupCalc';
+import { StoryCard } from '../components/StoryCard';
 import clsx from 'clsx';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
@@ -74,6 +75,11 @@ export default function ActiveWorkout() {
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [templateName, setTemplateName] = useState(() => existingRoutine?.name || editingRoutine?.name || '');
   const [hasInitializedRoutine, setHasInitializedRoutine] = useState(false);
+  const [startTime] = useState(() => Date.now());
+  
+  // Success Modal States
+  const [finishedWorkout, setFinishedWorkout] = useState<WorkoutSession | null>(null);
+  const [showStory, setShowStory] = useState(false);
 
   // Sync exercises if routine data loads later (async Supabase fetch)
   useEffect(() => {
@@ -312,11 +318,14 @@ export default function ActiveWorkout() {
       }
     });
     
+    const duration = Math.floor((Date.now() - startTime) / 1000);
+    
     const newWorkout: WorkoutSession = {
       id: existingWorkout ? existingWorkout.id : crypto.randomUUID(),
       date,
       muscleGroups,
-      exercises
+      exercises,
+      duration: existingWorkout?.duration ? existingWorkout.duration + duration : duration
     };
 
     if (existingWorkout) {
@@ -324,7 +333,9 @@ export default function ActiveWorkout() {
     } else {
       addWorkout(newWorkout);
     }
-    navigate('/');
+    
+    // Show success summary
+    setFinishedWorkout(newWorkout);
   };
 
   const handleSaveAsRoutine = () => {
@@ -689,6 +700,38 @@ export default function ActiveWorkout() {
         </button>
         )}
       </div>
+
+      {/* SUCCESS MODAL / SUMMARY */}
+      {finishedWorkout && (
+        <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4 bg-[var(--color-bg-base)]/80 backdrop-blur-xl animate-fade-in">
+          <div className="w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-[32px] p-8 shadow-2xl text-center animate-scale-spring">
+            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trophy className="w-10 h-10 text-green-500 animate-bounce-subtle" />
+            </div>
+            <h2 className="text-3xl font-black text-[var(--color-text-main)] mb-2 italic uppercase">Workout Crushed!</h2>
+            <p className="text-[var(--color-text-muted)] font-medium mb-8">Your gains have been secured. How do you want to celebrate?</p>
+            
+            <div className="grid grid-cols-1 gap-3 w-full">
+              <button 
+                onClick={() => setShowStory(true)}
+                className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/20 transition-all active:scale-95"
+              >
+                <Zap className="w-5 h-5 fill-white" /> Share Story Recap
+              </button>
+              <button 
+                onClick={() => navigate('/')}
+                className="w-full py-4 text-[var(--color-text-muted)] font-bold text-sm hover:text-[var(--color-text-main)] transition-colors"
+              >
+                Dismiss to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStory && finishedWorkout && (
+        <StoryCard workout={finishedWorkout} onClose={() => setShowStory(false)} />
+      )}
     </div>
   );
 }

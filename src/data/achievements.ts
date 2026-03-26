@@ -1,4 +1,5 @@
-import type { WorkoutSession } from '../types';
+import type { WorkoutSession, ActiveProgramState, Program } from '../types';
+import { calculateStreak } from '../lib/streak';
 
 export type AchievementCategory = 'Consistency' | 'Volume' | 'Strength' | 'Milestone' | 'Special';
 
@@ -10,9 +11,9 @@ export interface AchievementDef {
   category: AchievementCategory;
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   /** Returns a 0–1 progress value. 1 = unlocked. */
-  getProgress: (workouts: WorkoutSession[]) => number;
+  getProgress: (workouts: WorkoutSession[], activeProgram?: ActiveProgramState | null, programs?: Program[]) => number;
   /** Human-readable hint of current value vs target */
-  getHint?: (workouts: WorkoutSession[]) => string;
+  getHint?: (workouts: WorkoutSession[], activeProgram?: ActiveProgramState | null, programs?: Program[]) => string;
 }
 
 // ────────────────────────────────────────────────
@@ -52,16 +53,10 @@ function daysActiveInWeek(workouts: WorkoutSession[]): number {
   return Math.max(0, ...Object.values(weekMap).map(s => s.size));
 }
 
-function longestStreakDays(workouts: WorkoutSession[]): number {
-  if (workouts.length === 0) return 0;
-  const sortedDates = [...new Set(workouts.map(w => w.date.slice(0, 10)))].sort();
-  let longest = 1, current = 1;
-  for (let i = 1; i < sortedDates.length; i++) {
-    const diff = (new Date(sortedDates[i]).getTime() - new Date(sortedDates[i - 1]).getTime()) / 86400000;
-    if (diff === 1) { current++; longest = Math.max(longest, current); }
-    else { current = 1; }
-  }
-  return longest;
+function longestStreakDays(workouts: WorkoutSession[], activeProgram?: ActiveProgramState | null, programs?: Program[]): number {
+  if (workouts.length === 0 && !activeProgram) return 0;
+  const stats = calculateStreak(workouts, activeProgram || null, programs || []);
+  return stats.longestStreak;
 }
 
 function uniqueMuscleGroups(workouts: WorkoutSession[]): Set<string> {
@@ -113,8 +108,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: '⚡',
     category: 'Consistency',
     rarity: 'Common',
-    getProgress: (w) => Math.min(longestStreakDays(w) / 3, 1),
-    getHint: (w) => `${Math.min(longestStreakDays(w), 3)} / 3 day streak`,
+    getProgress: (w, ap, p) => Math.min(longestStreakDays(w, ap, p) / 3, 1),
+    getHint: (w, ap, p) => `${Math.min(longestStreakDays(w, ap, p), 3)} / 3 day streak`,
   },
   {
     id: 'streak_7',
@@ -123,8 +118,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: '🌊',
     category: 'Consistency',
     rarity: 'Epic',
-    getProgress: (w) => Math.min(longestStreakDays(w) / 7, 1),
-    getHint: (w) => `${Math.min(longestStreakDays(w), 7)} / 7 day streak`,
+    getProgress: (w, ap, p) => Math.min(longestStreakDays(w, ap, p) / 7, 1),
+    getHint: (w, ap, p) => `${Math.min(longestStreakDays(w, ap, p), 7)} / 7 day streak`,
   },
   {
     id: 'ten_sessions',
@@ -510,8 +505,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: '🔱',
     category: 'Consistency',
     rarity: 'Legendary',
-    getProgress: (w) => Math.min(longestStreakDays(w) / 14, 1),
-    getHint: (w) => `${Math.min(longestStreakDays(w), 14)} / 14 day streak`,
+    getProgress: (w, ap, p) => Math.min(longestStreakDays(w, ap, p) / 14, 1),
+    getHint: (w, ap, p) => `${Math.min(longestStreakDays(w, ap, p), 14)} / 14 day streak`,
   },
   {
     id: 'fifty_sessions',
@@ -780,9 +775,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 
 export type ComputedAchievement = AchievementDef & { progress: number; unlocked: boolean };
 
-export function computeAchievements(workouts: WorkoutSession[]): ComputedAchievement[] {
+export function computeAchievements(
+  workouts: WorkoutSession[], 
+  activeProgram: ActiveProgramState | null = null, 
+  programs: Program[] = []
+): ComputedAchievement[] {
   return ACHIEVEMENTS.map(a => {
-    const progress = a.getProgress(workouts);
+    const progress = a.getProgress(workouts, activeProgram, programs);
     return { ...a, progress, unlocked: progress >= 1 };
   });
 }
