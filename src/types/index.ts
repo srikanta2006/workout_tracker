@@ -6,6 +6,7 @@ export interface WorkoutSet {
   reps: number | '';
   weight: number | '';
   completed?: boolean;
+  isWarmup?: boolean;
 }
 
 export interface Exercise {

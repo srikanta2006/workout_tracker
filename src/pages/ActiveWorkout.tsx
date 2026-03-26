@@ -4,7 +4,8 @@ import { useWorkoutState } from '../hooks/useWorkoutState';
 import { WorkoutTimer } from '../components/WorkoutTimer';
 import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
-import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown, Flame } from 'lucide-react';
+import { calculateWarmupSets, warmupModel } from '../lib/warmupCalc';
 import clsx from 'clsx';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
@@ -231,6 +232,25 @@ export default function ActiveWorkout() {
     }));
   };
 
+  const handleAddWarmupSets = (exerciseId: string) => {
+    setExercises(prev => prev.map(ex => {
+      if (ex.id === exerciseId) {
+        const targetWeight = Number(ex.sets[0]?.weight) || 0;
+        if (targetWeight <= 0) {
+          alert("Please enter a target weight in the first set before generating warm-ups.");
+          return ex;
+        }
+        const warmupSets = calculateWarmupSets(targetWeight) as WorkoutSet[];
+        const newSets = [...warmupSets, ...ex.sets].map((s, idx) => ({
+          ...s,
+          setNumber: idx + 1
+        }));
+        return { ...ex, sets: newSets };
+      }
+      return ex;
+    }));
+  };
+
   const handleUpdateSet = (exerciseId: string, setId: string, field: 'reps' | 'weight' | 'completed', value: string | boolean) => {
     setExercises(prev => {
       const updated = prev.map(ex => {
@@ -277,6 +297,20 @@ export default function ActiveWorkout() {
       alert("Please ensure all exercises have a name and there's at least one exercise.");
       return;
     }
+
+    // 🧠 TRAIN THE WARMUP MODEL
+    // Check each exercise for modified warm-up sets to improve FUTURE generations
+    exercises.forEach(ex => {
+      const warmupSets = ex.sets.filter(s => s.isWarmup);
+      if (warmupSets.length > 0) {
+        // We use the first NON-warmup set as the target weight for training
+        const targetSet = ex.sets.find(s => !s.isWarmup);
+        const targetWeight = Number(targetSet?.weight) || 0;
+        if (targetWeight > 0) {
+          warmupModel.train(targetWeight, ex.sets);
+        }
+      }
+    });
     
     const newWorkout: WorkoutSession = {
       id: existingWorkout ? existingWorkout.id : crypto.randomUUID(),
@@ -479,6 +513,14 @@ export default function ActiveWorkout() {
                       <Star className={`w-5 h-5 ${isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-[var(--color-text-muted)]'}`} />
                     </button>
                 )}
+                
+                <button
+                  onClick={() => handleAddWarmupSets(exercise.id)}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider hover:bg-orange-500/20 transition-colors ml-auto"
+                  title="Generate Warm-up Sets"
+                >
+                  <Flame className="w-3 h-3" /> Warm-up
+                </button>
               </div>
 
               {!isTemplateMode && (
@@ -525,8 +567,14 @@ export default function ActiveWorkout() {
                   return (
                     <div key={set.id} className={clsx(
                       "grid grid-cols-12 gap-2 items-center bg-[var(--color-bg-base)] rounded-lg p-2 relative transition-all",
-                      set.completed ? "opacity-50 grayscale animate-success-flash" : "animate-slide-in"
+                      set.completed ? "opacity-50 grayscale animate-success-flash" : "animate-slide-in",
+                      set.isWarmup && "border-l-4 border-orange-500/50 bg-orange-500/[0.03]"
                     )}>
+                      {set.isWarmup && !set.completed && (
+                        <div className="absolute -left-[3px] top-1/2 -translate-y-1/2 h-full flex items-center">
+                           <div className="bg-orange-500 text-white text-[7px] font-black py-0.5 px-1 rounded-sm rotate-180 [writing-mode:vertical-lr]">WARMUP</div>
+                        </div>
+                      )}
                       {isNewPR && (
                         <div className="absolute -left-2 top-1/2 -translate-y-1/2 bg-yellow-400 text-yellow-900 text-[8px] font-bold px-1 rounded shadow-sm rotate-[-15deg]">
                           NEW PR!
