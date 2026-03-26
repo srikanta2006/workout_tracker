@@ -3,7 +3,7 @@ import { useWorkoutState } from '../hooks/useWorkoutState';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis } from 'recharts';
 import { EXERCISE_DATABASE } from '../data/exercises';
 import { format, parseISO, subDays, isAfter, eachDayOfInterval, startOfDay } from 'date-fns';
-import { TrendingUp, Target, Plus, Trash2, Crosshair, Scale, BarChart2, Medal } from 'lucide-react';
+import { TrendingUp, Target, Plus, Trash2, Crosshair, Scale, BarChart2, Medal, Trophy } from 'lucide-react';
 import { StreakCalendar } from '../components/StreakCalendar';
 import { MuscleHeatmap } from '../components/MuscleHeatmap';
 
@@ -191,6 +191,63 @@ export default function Stats() {
     });
     return out;
   }, [workouts, prExercise]);
+  
+  // --- 8. BIG THREE 1RM EVOLUTION ---
+  const bigThreeData = useMemo(() => {
+    const keyLifts = ['Barbell Squat', 'Barbell Bench Press', 'Deadlift'];
+    const sorted = [...workouts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // We need a baseline for all dates where at least one key lift was performed
+    const dataPoints: { date: string; Squat?: number; Bench?: number; Deadlift?: number; displayDate: string }[] = [];
+    
+    // Keep track of the last seen 1RM for each to "carry forward" the line
+    let lastSquat = 0;
+    let lastBench = 0;
+    let lastDeadlift = 0;
+
+    sorted.forEach(w => {
+      let foundAny = false;
+      const point: any = { 
+        date: w.date,
+        displayDate: format(parseISO(w.date), 'MMM d')
+      };
+
+      keyLifts.forEach(liftName => {
+        const exs = w.exercises.filter(e => e.name === liftName);
+        if (exs.length > 0) {
+          let dailyMax = 0;
+          exs.forEach(ex => {
+            ex.sets.filter(s => s.completed).forEach(s => {
+              const weight = Number(s.weight) || 0;
+              const reps = Number(s.reps) || 0;
+              if (reps > 0 && weight > 0) {
+                const oneRM = weight * (36 / (37 - reps));
+                if (oneRM > dailyMax) dailyMax = oneRM;
+              }
+            });
+          });
+          
+          if (dailyMax > 0) {
+            foundAny = true;
+            const rounded = Math.round(dailyMax);
+            if (liftName === 'Barbell Squat') { lastSquat = rounded; point.Squat = rounded; }
+            if (liftName === 'Barbell Bench Press') { lastBench = rounded; point.Bench = rounded; }
+            if (liftName === 'Deadlift') { lastDeadlift = rounded; point.Deadlift = rounded; }
+          }
+        }
+      });
+
+      if (foundAny) {
+        // Carry forward previous values if not performed today to keep lines continuous
+        if (!point.Squat && lastSquat > 0) point.Squat = lastSquat;
+        if (!point.Bench && lastBench > 0) point.Bench = lastBench;
+        if (!point.Deadlift && lastDeadlift > 0) point.Deadlift = lastDeadlift;
+        dataPoints.push(point);
+      }
+    });
+
+    return dataPoints;
+  }, [workouts]);
 
   return (
     <div className="w-full h-full flex flex-col pb-8">
@@ -454,6 +511,65 @@ export default function Stats() {
                 <Area type="monotone" dataKey="volume" stroke="var(--color-brand-500)" strokeWidth={2} fill="url(#volGrad)" />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* --- BIG THREE 1RM EVOLUTION --- */}
+        <div className="glass-card rounded-3xl p-6 shadow-premium hover:shadow-premium-hover transition-all duration-500 animate-scale-spring lg:col-span-2">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-3 text-[var(--color-text-main)]">
+              <div className="bg-gradient-to-br from-amber-500/20 to-amber-500/10 backdrop-blur-sm border border-amber-500/20 p-2 rounded-xl">
+                <Trophy className="w-5 h-5 text-amber-500" />
+              </div>
+              The Big Three: 1RM Evolution
+            </h3>
+            <div className="flex gap-4 text-xs font-bold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5 text-emerald-500">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Squat
+              </span>
+              <span className="flex items-center gap-1.5 text-blue-500">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div> Bench
+              </span>
+              <span className="flex items-center gap-1.5 text-orange-500">
+                <div className="w-2 h-2 rounded-full bg-orange-500"></div> Deadlift
+              </span>
+            </div>
+          </div>
+          <p className="text-sm text-[var(--color-text-muted)] font-medium mb-8 leading-relaxed">
+            Historical progression of your estimated 1-Rep Max for the core compound lifts. 
+            Lines represent your peak estimated capability (Brzycki Formula) carried forward across sessions.
+          </p>
+          
+          <div className="h-[320px] w-full">
+            {bigThreeData.length < 1 ? (
+              <div className="h-full w-full flex flex-col items-center justify-center text-center px-6 py-8 border-2 border-dashed border-[var(--color-border-subtle)]/30 rounded-2xl bg-[var(--color-bg-base)]/30 backdrop-blur-sm">
+                <Medal className="w-12 h-12 text-[var(--color-text-muted)]/50 mb-3" />
+                <p className="text-sm text-[var(--color-text-muted)] font-medium">Log at least one set of Squat, Bench Press, or Deadlift to unlock your Powerlifting progression curve.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={bigThreeData} margin={{ top: 10, right: 30, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} opacity={0.2} />
+                  <XAxis dataKey="displayDate" stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                  <YAxis stroke="var(--color-text-muted)" fontSize={12} tickLine={false} axisLine={false} dx={-5} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--color-bg-card)', 
+                      border: '1px solid var(--color-border-subtle)', 
+                      borderRadius: '16px', 
+                      color: 'var(--color-text-main)', 
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                      backdropFilter: 'blur(12px)',
+                      padding: '16px'
+                    }}
+                    cursor={{ stroke: 'var(--color-brand-500)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  />
+                  <Line type="monotone" dataKey="Squat" name="Squat" stroke="#10b981" strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 2, fill: 'white' }} animationDuration={2000} />
+                  <Line type="monotone" dataKey="Bench" name="Bench" stroke="#3b82f6" strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 2, fill: 'white' }} animationDuration={2000} />
+                  <Line type="monotone" dataKey="Deadlift" name="Deadlift" stroke="#f59e0b" strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 2, fill: 'white' }} animationDuration={2000} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
