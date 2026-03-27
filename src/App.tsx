@@ -4,49 +4,69 @@ import { Layout } from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
 import { WorkoutProvider } from './context/WorkoutContext';
 import { PrivateRoute } from './components/PrivateRoute';
+import { AppModeProvider } from './context/AppModeContext';
+import { DietProvider } from './context/DietContext';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const ActiveWorkout = lazy(() => import('./pages/ActiveWorkout'));
-const Stats = lazy(() => import('./pages/Stats'));
-const Routines = lazy(() => import('./pages/Routines'));
-const Session = lazy(() => import('./pages/Session'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Achievements = lazy(() => import('./pages/Achievements'));
-const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard.tsx'));
+const ActiveWorkout = lazy(() => import('./pages/ActiveWorkout.tsx'));
+const Stats = lazy(() => import('./pages/Stats.tsx'));
+const Routines = lazy(() => import('./pages/Routines.tsx'));
+const Session = lazy(() => import('./pages/Session.tsx'));
+const Settings = lazy(() => import('./pages/Settings.tsx'));
+const Achievements = lazy(() => import('./pages/Achievements.tsx'));
+const Login = lazy(() => import('./pages/Login.tsx'));
+
+// Diet Pages (Eat Mode)
+const NutritionDashboard = lazy(() => import('./pages/NutritionDashboard.tsx'));
+const MealLog = lazy(() => import('./pages/MealLog.tsx'));
+const WaterLog = lazy(() => import('./pages/WaterLog.tsx'));
+const DietStats = lazy(() => import('./pages/DietStats.tsx'));
+const WeightLog = lazy(() => import('./pages/WeightLog.tsx'));
 
 function App() {
   return (
     <AuthProvider>
-      <WorkoutProvider>
-        <div className="animate-fade-in-up h-full w-full">
-          <BrowserRouter>
-            <Suspense fallback={
-              <div className="flex-1 flex items-center justify-center h-screen bg-[var(--color-bg-base)]">
-                <div className="animate-spin rounded-full h-10 w-10 border-2 border-[var(--color-brand-500)] border-t-transparent" />
-              </div>
-            }>
-              <Routes>
-                {/* Public */}
-                <Route path="/login" element={<Login />} />
+      <AppModeProvider>
+        <DietProvider>
+          <WorkoutProvider>
+            <div className="animate-fade-in-up h-full w-full">
+              <BrowserRouter>
+                <Suspense fallback={
+                  <div className="flex-1 flex items-center justify-center h-screen bg-[var(--color-bg-base)]">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-emerald-500 border-t-transparent" />
+                  </div>
+                }>
+                  <Routes>
+                    {/* Public */}
+                    <Route path="/login" element={<Login />} />
 
-                {/* Protected */}
-                <Route element={<PrivateRoute />}>
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="stats" element={<Stats />} />
-                    <Route path="routines" element={<Routines />} />
-                    <Route path="session" element={<Session />} />
-                    <Route path="settings" element={<Settings />} />
-                    <Route path="achievements" element={<Achievements />} />
-                    <Route path="workout" element={<ActiveWorkout />} />
-                    <Route path="workout/:id" element={<ActiveWorkout />} />
-                  </Route>
-                </Route>
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </div>
-      </WorkoutProvider>
+                    {/* Protected */}
+                    <Route element={<PrivateRoute />}>
+                      <Route path="/" element={<Layout />}>
+                        <Route index element={<Dashboard />} />
+                        <Route path="stats" element={<Stats />} />
+                        <Route path="routines" element={<Routines />} />
+                        <Route path="session" element={<Session />} />
+                        <Route path="settings" element={<Settings />} />
+                        <Route path="achievements" element={<Achievements />} />
+                        <Route path="workout" element={<ActiveWorkout />} />
+                        <Route path="workout/:id" element={<ActiveWorkout />} />
+
+                        {/* Diet Routes */}
+                        <Route path="diet" element={<NutritionDashboard />} />
+                        <Route path="meals" element={<MealLog />} />
+                        <Route path="water" element={<WaterLog />} />
+                        <Route path="diet-stats" element={<DietStats />} />
+                        <Route path="weight" element={<WeightLog />} />
+                      </Route>
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </div>
+          </WorkoutProvider>
+        </DietProvider>
+      </AppModeProvider>
     </AuthProvider>
   );
 }

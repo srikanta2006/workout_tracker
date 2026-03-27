@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -311,7 +311,7 @@ export default function Stats() {
     </div>
   );
 
-  const emptyState = (msg: string, icon: React.ReactNode) => (
+  const emptyState = (msg: string, icon: ReactNode) => (
     <div className="h-full w-full flex flex-col items-center justify-center text-center px-6 py-8 border border-dashed border-[var(--color-border-subtle)]/40 rounded-2xl bg-[var(--color-bg-base)]/20">
       <div className="mb-3 opacity-30">{icon}</div>
       <p className="text-sm text-[var(--color-text-muted)] font-medium leading-relaxed">{msg}</p>

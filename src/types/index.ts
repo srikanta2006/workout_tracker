@@ -58,3 +58,34 @@ export interface FitnessGoal {
   targetWeight: number;
   deadlineDate: string; // ISO yyyy-MM-dd
 }
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface Meal {
+  id: string;
+  user_id: string;
+  date: string; // yyyy-MM-dd
+  meal_type: MealType;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  created_at?: string;
+}
+
+export interface WaterLog {
+  id: string;
+  user_id: string;
+  date: string; // yyyy-MM-dd
+  amount_ml: number;
+}
+
+export interface DietGoals {
+  id: string;
+  user_id: string;
+  target_calories: number;
+  target_protein: number;
+  target_carbs: number;
+  target_fat: number;
+}
