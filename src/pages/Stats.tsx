@@ -6,15 +6,16 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { EXERCISE_DATABASE } from '../data/exercises';
-import { format, parseISO, subDays, isAfter, eachDayOfInterval, startOfDay, getWeek } from 'date-fns';
+import { format, parseISO, subDays, isAfter, eachDayOfInterval, startOfDay } from 'date-fns';
 import {
   TrendingUp, Target, Plus, Trash2, Crosshair, Scale, BarChart2,
-  Medal, Trophy, Flame, Zap, Calendar, Activity, ChevronUp, Star,
+  Medal, Trophy, Flame, Zap, Calendar, Activity, Star,
   Award, Dumbbell, CheckCircle2
 } from 'lucide-react';
 import { StreakCalendar } from '../components/StreakCalendar';
 import { MuscleHeatmap } from '../components/MuscleHeatmap';
 import { calculateStreak } from '../lib/streak';
+import { calculate1RM } from '../utils/coach';
 
 export default function Stats() {
   const { 
@@ -226,15 +227,21 @@ export default function Stats() {
     return performedExerciseNames.map(name => {
       let maxWeight = 0;
       let maxDate = '';
+      let max1RM = 0;
       workouts.forEach(w => {
         w.exercises.filter(e => e.name === name).forEach(ex => {
           ex.sets.filter(s => s.completed).forEach(s => {
             const sw = Number(s.weight) || 0;
+            const sr = Number(s.reps) || 0;
             if (sw > maxWeight) { maxWeight = sw; maxDate = w.date; }
+            if (sw > 0 && sr > 0) {
+              const current1RM = calculate1RM(sw, sr);
+              if (current1RM > max1RM) max1RM = current1RM;
+            }
           });
         });
       });
-      return { name, weight: maxWeight, date: maxDate };
+      return { name, weight: maxWeight, date: maxDate, est1RM: max1RM };
     }).filter(pr => pr.weight > 0).sort((a, b) => b.weight - a.weight);
   }, [workouts, performedExerciseNames]);
 
@@ -817,8 +824,15 @@ export default function Stats() {
                       {pr.date && <p className="text-[10px] text-[var(--color-text-muted)]">{format(parseISO(pr.date), 'MMM d, yyyy')}</p>}
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      <span className="text-base font-black text-[var(--color-text-main)]">{pr.weight}</span>
-                      <span className="text-[10px] font-bold text-[var(--color-brand-500)] ml-0.5">kg</span>
+                      <div className="flex items-baseline justify-end">
+                        <span className="text-base font-black text-[var(--color-text-main)]">{pr.weight}</span>
+                        <span className="text-[10px] font-bold text-[var(--color-brand-500)] ml-0.5">kg</span>
+                      </div>
+                      {pr.est1RM > pr.weight && (
+                        <p className="text-[9px] font-bold text-blue-500/80 uppercase tracking-wider mt-0.5">
+                          est. 1RM <span className="text-blue-500">{pr.est1RM}kg</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

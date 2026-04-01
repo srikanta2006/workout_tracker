@@ -9,10 +9,14 @@ interface DietContextType {
   waterIntake: number;
   dietGoals: DietGoals | null;
   weightRecords: BodyweightRecord[];
+  plannedMeals: Omit<Meal, 'id' | 'user_id' | 'created_at' | 'date'>[];
   selectedDate: Date;
   isLoading: boolean;
   addMeal: (meal: Omit<Meal, 'id' | 'user_id' | 'created_at' | 'date'>) => Promise<void>;
   deleteMeal: (id: string) => Promise<void>;
+  addToPlan: (meal: Omit<Meal, 'id' | 'user_id' | 'created_at' | 'date'>) => void;
+  removeFromPlan: (index: number) => void;
+  clearPlan: () => void;
   updateWater: (amount_ml: number) => Promise<void>;
   updateGoals: (goals: Omit<DietGoals, 'id' | 'user_id'>) => Promise<void>;
   addWeightRecord: (weight: number) => Promise<void>;
@@ -30,7 +34,28 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [waterIntake, setWaterIntake] = useState<number>(0);
   const [dietGoals, setDietGoals] = useState<DietGoals | null>(null);
   const [weightRecords, setWeightRecords] = useState<BodyweightRecord[]>([]);
+  const [plannedMeals, setPlannedMeals] = useState<Omit<Meal, 'id' | 'user_id' | 'created_at' | 'date'>[]>(() => {
+    const saved = localStorage.getItem('maxout_planned_meals');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Persistence for planned meals
+  useEffect(() => {
+    localStorage.setItem('maxout_planned_meals', JSON.stringify(plannedMeals));
+  }, [plannedMeals]);
+
+  const addToPlan = (meal: Omit<Meal, 'id' | 'user_id' | 'created_at' | 'date'>) => {
+    setPlannedMeals(prev => [...prev, meal]);
+  };
+
+  const removeFromPlan = (index: number) => {
+    setPlannedMeals(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearPlan = () => {
+    setPlannedMeals([]);
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -158,10 +183,14 @@ export function DietProvider({ children }: { children: ReactNode }) {
       waterIntake, 
       dietGoals, 
       weightRecords,
+      plannedMeals,
       selectedDate,
       isLoading, 
       addMeal, 
       deleteMeal, 
+      addToPlan,
+      removeFromPlan,
+      clearPlan,
       updateWater, 
       updateGoals,
       addWeightRecord,

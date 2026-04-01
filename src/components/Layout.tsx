@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell, Calendar, Play, Trophy, UtensilsCrossed, Apple, Droplets, Scale, Activity } from 'lucide-react';
+import { LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell, Calendar, Play, Trophy, UtensilsCrossed, Apple, Droplets, Scale, Activity, Target } from 'lucide-react';
 import clsx from 'clsx';
 import { AchievementUnlockPopup } from './AchievementUnlockPopup';
 import { useAppMode } from '../context/AppModeContext';
@@ -20,6 +20,7 @@ export function Layout() {
 
   const EAT_NAV_ITEMS = [
     { name: 'Nutrition', path: '/diet', icon: Apple },
+    { name: 'Planner', path: '/planner', icon: Target },
     { name: 'Meal Log', path: '/meals', icon: UtensilsCrossed },
     { name: 'Water', path: '/water', icon: Droplets },
     { name: 'Analytics', path: '/diet-stats', icon: Activity },

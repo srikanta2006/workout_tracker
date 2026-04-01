@@ -22,15 +22,16 @@ const MealLog = lazy(() => import('./pages/MealLog.tsx'));
 const WaterLog = lazy(() => import('./pages/WaterLog.tsx'));
 const DietStats = lazy(() => import('./pages/DietStats.tsx'));
 const WeightLog = lazy(() => import('./pages/WeightLog.tsx'));
+const DietPlanner = lazy(() => import('./pages/DietPlanner.tsx'));
 
 function App() {
   return (
     <AuthProvider>
-      <AppModeProvider>
-        <DietProvider>
-          <WorkoutProvider>
-            <div className="animate-fade-in-up h-full w-full">
-              <BrowserRouter>
+      <BrowserRouter>
+        <AppModeProvider>
+          <DietProvider>
+            <WorkoutProvider>
+              <div className="animate-fade-in-up h-full w-full">
                 <Suspense fallback={
                   <div className="flex-1 flex items-center justify-center h-screen bg-[var(--color-bg-base)]">
                     <div className="animate-spin rounded-full h-10 w-10 border-2 border-emerald-500 border-t-transparent" />
@@ -58,15 +59,16 @@ function App() {
                         <Route path="water" element={<WaterLog />} />
                         <Route path="diet-stats" element={<DietStats />} />
                         <Route path="weight" element={<WeightLog />} />
+                        <Route path="planner" element={<DietPlanner />} />
                       </Route>
                     </Route>
                   </Routes>
                 </Suspense>
-              </BrowserRouter>
-            </div>
-          </WorkoutProvider>
-        </DietProvider>
-      </AppModeProvider>
+              </div>
+            </WorkoutProvider>
+          </DietProvider>
+        </AppModeProvider>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

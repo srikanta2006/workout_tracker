@@ -1,10 +1,13 @@
 export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core' | 'Full Body';
 
+export type DifficultyLevel = 'Easy' | 'Normal' | 'Tough' | 'With Spotter';
+
 export interface WorkoutSet {
   id: string;
   setNumber: number;
   reps: number | '';
   weight: number | '';
+  difficulty?: DifficultyLevel;
   completed?: boolean;
   isWarmup?: boolean;
 }
@@ -81,6 +84,8 @@ export interface WaterLog {
   amount_ml: number;
 }
 
+export type FitnessGoalType = 'lose_weight' | 'gain_weight' | 'bulk' | 'cut' | 'maintain';
+
 export interface DietGoals {
   id: string;
   user_id: string;
@@ -88,4 +93,5 @@ export interface DietGoals {
   target_protein: number;
   target_carbs: number;
   target_fat: number;
+  fitness_goal?: FitnessGoalType;
 }

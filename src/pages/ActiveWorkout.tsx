@@ -6,6 +6,8 @@ import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
 import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown, Flame, Zap } from 'lucide-react';
 import { calculateWarmupSets, warmupModel } from '../lib/warmupCalc';
+import { generateNextSets } from '../utils/coach';
+import { calculateEquivalentWeight } from '../utils/conversions';
 import { StoryCard } from '../components/StoryCard';
 import clsx from 'clsx';
 
@@ -80,23 +82,27 @@ export default function ActiveWorkout() {
   // Success Modal States
   const [finishedWorkout, setFinishedWorkout] = useState<WorkoutSession | null>(null);
   const [showStory, setShowStory] = useState(false);
+  const [readinessScore, setReadinessScore] = useState<number | null>(() => {
+    if (isTemplateMode || existingWorkout) return 7; // Skip readiness check if templating or editing past workout
+    return null; // Force modal for new live sessions
+  });
 
   // Sync exercises if routine data loads later (async Supabase fetch)
   useEffect(() => {
-    if (existingRoutine && !hasInitializedRoutine && !existingWorkout) {
-      setExercises(existingRoutine.exercises.map(ex => ({
-        ...ex,
-        id: crypto.randomUUID(),
-        sets: ex.sets.map(s => ({
-          ...s,
+    if (existingRoutine && !hasInitializedRoutine && !existingWorkout && readinessScore !== null) {
+      setExercises(existingRoutine.exercises.map(ex => {
+        // Run the template sets through the ML Engine
+        const mlSets = generateNextSets(ex.name, workouts, ex.sets, readinessScore);
+        return {
+          ...ex,
           id: crypto.randomUUID(),
-          completed: false
-        }))
-      })));
+          sets: mlSets
+        };
+      }));
       setTemplateName(existingRoutine.name);
       setHasInitializedRoutine(true);
     }
-  }, [existingRoutine, hasInitializedRoutine, existingWorkout]);
+  }, [existingRoutine, hasInitializedRoutine, existingWorkout, workouts, readinessScore]);
 
   // Dynamic Datalist Options - Combine all selected muscle groups into a single array
   const availableExercises = muscleGroups.includes('Full Body') 
@@ -159,10 +165,12 @@ export default function ActiveWorkout() {
   };
 
   const handleAddExercise = (defaultName: string = '') => {
+    // If added from favorites, use ML engine immediately
+    const initialSets = defaultName ? generateNextSets(defaultName, workouts, undefined, readinessScore || 7) : [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' } as WorkoutSet];
     setExercises([...exercises, { 
       id: crypto.randomUUID(), 
       name: defaultName, 
-      sets: [{ id: crypto.randomUUID(), setNumber: 1, reps: '', weight: '' }] as WorkoutSet[]
+      sets: initialSets
     }]);
   };
 
@@ -186,7 +194,29 @@ export default function ActiveWorkout() {
   };
 
   const handleUpdateExerciseName = (id: string, name: string) => {
-    setExercises(exercises.map(ex => ex.id === id ? { ...ex, name } : ex));
+    setExercises(exercises.map(ex => {
+      if (ex.id === id) {
+        // If a valid name is typed and they only have 1 empty set, auto-fill it with ML predictions
+        if (name && ex.sets.length === 1 && ex.sets[0].weight === '' && ex.sets[0].reps === '') {
+          return { ...ex, name, sets: generateNextSets(name, workouts, undefined, readinessScore || 7) };
+        }
+        
+        // Intelligent Exercise Substitution (Volume Equivalence)
+        if (name && ex.name && name !== ex.name) {
+          const convertedSets = ex.sets.map(s => {
+            if (s.weight && Number(s.weight) > 0) {
+              const converted = calculateEquivalentWeight(ex.name, name, Number(s.weight));
+              return { ...s, weight: converted > 0 ? converted : s.weight };
+            }
+            return s;
+          });
+          return { ...ex, name, sets: convertedSets };
+        }
+        
+        return { ...ex, name };
+      }
+      return ex;
+    }));
   };
 
   const handleUpdateExerciseNotes = (id: string, notes: string) => {
@@ -257,7 +287,7 @@ export default function ActiveWorkout() {
     }));
   };
 
-  const handleUpdateSet = (exerciseId: string, setId: string, field: 'reps' | 'weight' | 'completed', value: string | boolean) => {
+  const handleUpdateSet = (exerciseId: string, setId: string, field: 'reps' | 'weight' | 'completed' | 'difficulty', value: string | boolean) => {
     setExercises(prev => {
       const updated = prev.map(ex => {
         if (ex.id === exerciseId) {
@@ -265,7 +295,8 @@ export default function ActiveWorkout() {
             ...ex,
             sets: ex.sets.map(s => {
               if (s.id === setId) {
-                if (field === 'completed') return { ...s, completed: value as boolean };
+                if (field === 'completed') return { ...s, completed: value as boolean, difficulty: value ? s.difficulty || 'Normal' : undefined };
+                if (field === 'difficulty') return { ...s, difficulty: value as any };
                 const parsedVal = value === '' ? '' : Number(value);
                 return { ...s, [field]: parsedVal };
               }
@@ -578,7 +609,7 @@ export default function ActiveWorkout() {
                   return (
                     <div key={set.id} className={clsx(
                       "grid grid-cols-12 gap-2 items-center bg-[var(--color-bg-base)] rounded-lg p-2 relative transition-all",
-                      set.completed ? "opacity-50 grayscale animate-success-flash" : "animate-slide-in",
+                      set.completed && !set.isWarmup ? "border border-[var(--color-brand-500)]/30 animate-success-flash" : "animate-slide-in",
                       set.isWarmup && "border-l-4 border-orange-500/50 bg-orange-500/[0.03]"
                     )}>
                       {set.isWarmup && !set.completed && (
@@ -587,78 +618,107 @@ export default function ActiveWorkout() {
                         </div>
                       )}
                       {isNewPR && (
-                        <div className="absolute -left-2 top-1/2 -translate-y-1/2 bg-yellow-400 text-yellow-900 text-[8px] font-bold px-1 rounded shadow-sm rotate-[-15deg]">
-                          NEW PR!
-                        </div>
+                         <div className="absolute -left-2 top-0 bg-yellow-400 text-yellow-900 text-[8px] font-bold px-1 rounded shadow-sm rotate-[-15deg] z-10">
+                           NEW PR!
+                         </div>
                       )}
-                      
-                      <div className="col-span-2 flex flex-col items-center justify-center">
-                        <button
-                          onClick={() => handleMoveSet(exercise.id, set.id, 'up')}
-                          disabled={set.setNumber === 1}
-                          className="p-0 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-0 transition-colors"
-                        >
-                          <ChevronUp className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold leading-none my-0.5">{set.setNumber}</span>
-                        <button
-                          onClick={() => handleMoveSet(exercise.id, set.id, 'down')}
-                          disabled={set.setNumber === exercise.sets.length}
-                          className="p-0 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-0 transition-colors"
-                        >
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
+
+                      {/* Main Row */}
+                      <div className="col-span-12 grid grid-cols-12 gap-2 items-center relative z-0">
+                        <div className="col-span-2 flex flex-col items-center justify-center">
+                          <button
+                            onClick={() => handleMoveSet(exercise.id, set.id, 'up')}
+                            disabled={set.setNumber === 1}
+                            className="p-0 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-0 transition-colors"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-bold leading-none my-0.5">{set.setNumber}</span>
+                          <button
+                            onClick={() => handleMoveSet(exercise.id, set.id, 'down')}
+                            disabled={set.setNumber === exercise.sets.length}
+                            className="p-0 text-[var(--color-text-muted)] hover:text-[var(--color-brand-500)] disabled:opacity-0 transition-colors"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                        </div>
+  
+                        <div className="col-span-4 relative">
+                          <input 
+                            type="number" 
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={set.weight}
+                            onChange={(e) => handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)}
+                            className={`w-full bg-transparent text-center font-bold outline-none ${isNewPR ? 'text-yellow-600 dark:text-yellow-400' : 'text-[var(--color-text-main)]'} ${set.completed ? 'text-[var(--color-brand-500)]' : ''}`}
+                          />
+                          {weightDelta !== null && !set.completed && (
+                            <span className={`absolute -top-2.5 right-0 text-[9px] font-bold 
+                              ${weightDelta > 0 ? 'text-green-400' : weightDelta < 0 ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
+                              {weightDelta > 0 ? `▲${weightDelta}` : weightDelta < 0 ? `▼${Math.abs(weightDelta)}` : '='} kg
+                            </span>
+                          )}
+                        </div>
+                        <div className="col-span-4 relative">
+                          <input 
+                            type="number" 
+                            inputMode="numeric"
+                            placeholder="0"
+                            value={set.reps}
+                            onChange={(e) => handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)}
+                            className={`w-full bg-transparent text-center font-bold outline-none text-[var(--color-text-main)] ${set.completed ? 'text-[var(--color-brand-500)]' : ''}`}
+                          />
+                          {repsDelta !== null && !set.completed && (
+                            <span className={`absolute -top-2.5 right-0 text-[9px] font-bold 
+                              ${repsDelta > 0 ? 'text-green-400' : repsDelta < 0 ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
+                              {repsDelta > 0 ? `▲${repsDelta}` : repsDelta < 0 ? `▼${Math.abs(repsDelta)}` : '='} reps
+                            </span>
+                          )}
+                        </div>
+                        <div className="col-span-2 flex justify-center gap-2">
+                          {!isTemplateMode && (
+                          <button
+                            onClick={() => handleUpdateSet(exercise.id, set.id, 'completed', !set.completed)}
+                            className={`p-1 rounded transition-colors ${set.completed ? 'bg-green-500 text-white' : 'bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:text-green-500'}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                          )}
+                          <button 
+                            onClick={() => handleRemoveSet(exercise.id, set.id)}
+                            disabled={exercise.sets.length === 1}
+                            className="text-[var(--color-text-muted)] hover:text-red-500 disabled:opacity-20 disabled:cursor-not-allowed transition-colors p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="col-span-4 relative">
-                        <input 
-                          type="number" 
-                          inputMode="decimal"
-                          placeholder="0"
-                          value={set.weight}
-                          onChange={(e) => handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)}
-                          className={`w-full bg-transparent text-center font-bold outline-none ${isNewPR ? 'text-yellow-600 dark:text-yellow-400' : 'text-[var(--color-text-main)]'} ${set.completed ? 'line-through' : ''}`}
-                        />
-                        {weightDelta !== null && !set.completed && (
-                          <span className={`absolute -top-2.5 right-0 text-[9px] font-bold 
-                            ${weightDelta > 0 ? 'text-green-400' : weightDelta < 0 ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
-                            {weightDelta > 0 ? `▲${weightDelta}` : weightDelta < 0 ? `▼${Math.abs(weightDelta)}` : '='} kg
-                          </span>
-                        )}
-                      </div>
-                      <div className="col-span-4 relative">
-                        <input 
-                          type="number" 
-                          inputMode="numeric"
-                          placeholder="0"
-                          value={set.reps}
-                          onChange={(e) => handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)}
-                          className={`w-full bg-transparent text-center font-bold outline-none text-[var(--color-text-main)] ${set.completed ? 'line-through' : ''}`}
-                        />
-                        {repsDelta !== null && !set.completed && (
-                          <span className={`absolute -top-2.5 right-0 text-[9px] font-bold 
-                            ${repsDelta > 0 ? 'text-green-400' : repsDelta < 0 ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
-                            {repsDelta > 0 ? `▲${repsDelta}` : repsDelta < 0 ? `▼${Math.abs(repsDelta)}` : '='} reps
-                          </span>
-                        )}
-                      </div>
-                      <div className="col-span-2 flex justify-center gap-2">
-                        {!isTemplateMode && (
-                        <button
-                          onClick={() => handleUpdateSet(exercise.id, set.id, 'completed', !set.completed)}
-                          className={`p-1 rounded transition-colors ${set.completed ? 'bg-green-500 text-white' : 'bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:text-green-500'}`}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                        </button>
-                        )}
-                        <button 
-                          onClick={() => handleRemoveSet(exercise.id, set.id)}
-                          disabled={exercise.sets.length === 1}
-                          className="text-[var(--color-text-muted)] hover:text-red-500 disabled:opacity-20 disabled:cursor-not-allowed transition-colors p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {/* Difficulty Selector Panel - only visible when completed and not warmup */}
+                      {set.completed && !set.isWarmup && !isTemplateMode && (
+                        <div className="col-span-12 flex items-center justify-between gap-2 mt-2 pt-2 border-t border-dashed border-[var(--color-border-subtle)] animate-fade-in-up origin-top">
+                          <span className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider pl-2">Setup ML Coach</span>
+                          <div className="flex gap-1 pr-1">
+                            {['Easy', 'Normal', 'Tough', 'With Spotter'].map((diff) => (
+                              <button
+                                key={diff}
+                                onClick={() => handleUpdateSet(exercise.id, set.id, 'difficulty', diff)}
+                                className={clsx(
+                                  "text-[10px] px-2 py-1 rounded font-bold transition-all active:scale-[0.95]",
+                                  set.difficulty === diff 
+                                    ? diff === 'Easy' ? "bg-green-500 text-white" 
+                                    : diff === 'Normal' ? "bg-blue-500 text-white" 
+                                    : diff === 'Tough' ? "bg-orange-500 text-white" 
+                                    : "bg-red-500 text-white"
+                                    : "bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:border-[var(--color-brand-500)]/30"
+                                )}
+                              >
+                                {diff === 'With Spotter' ? 'Spotter' : diff}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -731,6 +791,34 @@ export default function ActiveWorkout() {
 
       {showStory && finishedWorkout && (
         <StoryCard workout={finishedWorkout} onClose={() => setShowStory(false)} />
+      )}
+
+      {/* READINESS MODAL */}
+      {readinessScore === null && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-[var(--color-bg-base)]/90 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-[32px] p-8 shadow-2xl text-center animate-scale-spring">
+            <h2 className="text-3xl font-black text-[var(--color-text-main)] mb-1">Pre-Check</h2>
+            <p className="text-sm text-[var(--color-text-muted)] font-medium mb-8">How's the CNS feeling today?</p>
+            
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                { value: 10, label: 'Prime (10) - PR Ready 🔥', color: 'bg-green-500 hover:bg-green-600', text: 'text-white' },
+                { value: 7, label: 'Normal (7) - Let\'s work', color: 'bg-blue-500 hover:bg-blue-600', text: 'text-white' },
+                { value: 4, label: 'Fatigued (4) - Take it easy', color: 'bg-orange-500 hover:bg-orange-600', text: 'text-white' },
+                { value: 2, label: 'Exhausted (2) - Deload', color: 'bg-red-500 hover:bg-red-600', text: 'text-white' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setReadinessScore(opt.value)}
+                  className={`w-full py-4 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 ${opt.color} ${opt.text}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setReadinessScore(7)} className="mt-6 text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors">Skip (Default)</button>
+          </div>
+        </div>
       )}
     </div>
   );
