@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useDiet } from '../context/DietContext';
-import { INDIAN_FOOD_DATABASE, type FoodItem } from '../data/foodDatabase';
+import { GLOBAL_FOODS } from '../data/globalFoods';
+import type { FoodItem } from '../types';
 import { 
   Plus, Search, Trash2, Info, Flame, TrendingUp, Apple, 
   Save, Utensils
@@ -9,14 +10,28 @@ import type { FitnessGoalType } from '../types';
 import clsx from 'clsx';
 
 export default function DietPlanner() {
-  const { plannedMeals, addToPlan, removeFromPlan, clearPlan, dietGoals, updateGoals, addMeal } = useDiet();
+  const { dietGoals, updateGoals, addMeal } = useDiet();
+  
+  const [plannedMeals, setPlannedMeals] = useState<any[]>(() => {
+    const saved = localStorage.getItem('maxout_planned_meals');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('maxout_planned_meals', JSON.stringify(plannedMeals));
+  }, [plannedMeals]);
+
+  const addToPlan = (meal: any) => setPlannedMeals(prev => [...prev, meal]);
+  const removeFromPlan = (index: number) => setPlannedMeals(prev => prev.filter((_, i) => i !== index));
+  const clearPlan = () => setPlannedMeals([]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGoal, setSelectedGoal] = useState<FitnessGoalType>(dietGoals?.fitness_goal || 'maintain');
 
   const filteredFoods = useMemo<FoodItem[]>(() => {
-    return INDIAN_FOOD_DATABASE.filter(food => 
+    return GLOBAL_FOODS.filter(food => 
       food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      food.category.toLowerCase().includes(searchQuery.toLowerCase())
+      (food.category && food.category.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [searchQuery]);
 
@@ -55,7 +70,11 @@ export default function DietPlanner() {
 
   const handleLogAll = async () => {
     for (const meal of plannedMeals) {
-      await addMeal(meal);
+      await addMeal({
+        ...meal,
+        date: new Date().toISOString().split('T')[0],
+        items: []
+      });
     }
     clearPlan();
     alert('All planned meals have been added to your today\'s log!');
@@ -231,19 +250,19 @@ export default function DietPlanner() {
                 onClick={() => addToPlan({
                   name: food.name,
                   meal_type: 'snack', // Default for planner
-                  calories: food.calories,
-                  protein: food.protein,
-                  carbs: food.carbs,
-                  fat: food.fat
+                  calories: food.base_calories,
+                  protein: food.base_protein,
+                  carbs: food.base_carbs,
+                  fat: food.base_fat
                 })}
                 className="w-full bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)]/30 p-5 rounded-3xl flex items-center justify-between group hover:border-emerald-500/50 hover:shadow-md transition-all active:scale-[0.98] text-left"
               >
                 <div>
                   <h4 className="font-bold text-[var(--color-text-main)] group-hover:text-emerald-500 transition-colors">{food.name}</h4>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] font-black uppercase text-emerald-500/70">{food.region || 'General'}</span>
+                    <span className="text-[9px] font-black uppercase text-emerald-500/70">{food.region || 'Global'}</span>
                     <span className="text-[9px] font-black uppercase text-[var(--color-text-muted)]">·</span>
-                    <span className="text-[9px] font-black uppercase text-[var(--color-text-muted)]">{food.calories} kcal</span>
+                    <span className="text-[9px] font-black uppercase text-[var(--color-text-muted)]">{food.base_calories} kcal</span>
                   </div>
                 </div>
                 <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">

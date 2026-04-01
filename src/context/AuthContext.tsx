@@ -30,11 +30,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (currentUser: User) => {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
       if (error) throw error;
-      setProfile(data);
+      
+      if (data) {
+        setProfile(data);
+      } else {
+        // No row in Supabase yet, use local fallback
+        const localStr = localStorage.getItem(`profile_${currentUser.id}`);
+        if (localStr) {
+          setProfile(JSON.parse(localStr));
+        } else {
+          setProfile({ id: currentUser.id, email: currentUser.email, onboarding_completed: false });
+        }
+      }
     } catch (e) {
-      console.warn("Falling back to local profile storage", e);
+      console.warn("Error fetching profile, using fallback", e);
       const localStr = localStorage.getItem(`profile_${currentUser.id}`);
       if (localStr) {
         setProfile(JSON.parse(localStr));

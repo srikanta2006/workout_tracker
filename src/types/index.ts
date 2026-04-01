@@ -64,16 +64,56 @@ export interface FitnessGoal {
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
+export type ServingUnit = 'g' | 'ml' | 'cup' | 'piece' | 'tbsp' | 'oz';
+
+export interface ServingSize {
+  name: string;
+  weight_in_grams: number;
+}
+
+export interface FoodItem {
+  id: string;
+  user_id?: string; // null means global/system food, uuid means custom
+  name: string;
+  brand?: string;
+  category?: string;
+  region?: string;
+  base_calories: number; // For the exact default serving size
+  base_protein: number;
+  base_carbs: number;
+  base_fat: number;
+  default_serving: number;
+  default_unit: ServingUnit;
+  serving_sizes?: ServingSize[];
+  is_verified?: boolean;
+  admin_status?: 'pending' | 'approved' | 'rejected';
+  created_at?: string;
+}
+
+export interface MealItem {
+  id: string;
+  food_item: FoodItem; 
+  quantity: number;
+  unit: string;
+  calories: number; 
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export interface Meal {
   id: string;
   user_id: string;
   date: string; // yyyy-MM-dd
   meal_type: MealType;
-  name: string;
+  name?: string;
+  items: MealItem[];
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
+  notes?: string;
+  timestamp?: string;
   created_at?: string;
 }
 
