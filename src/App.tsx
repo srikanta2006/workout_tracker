@@ -15,6 +15,7 @@ const Session = lazy(() => import('./pages/Session.tsx'));
 const Settings = lazy(() => import('./pages/Settings.tsx'));
 const Achievements = lazy(() => import('./pages/Achievements.tsx'));
 const Login = lazy(() => import('./pages/Login.tsx'));
+const Onboarding = lazy(() => import('./pages/Onboarding.tsx'));
 
 // Diet Pages (Eat Mode)
 const NutritionDashboard = lazy(() => import('./pages/NutritionDashboard.tsx'));
@@ -43,6 +44,7 @@ function App() {
 
                     {/* Protected */}
                     <Route element={<PrivateRoute />}>
+                      <Route path="/onboarding" element={<Onboarding />} />
                       <Route path="/" element={<Layout />}>
                         <Route index element={<Dashboard />} />
                         <Route path="stats" element={<Stats />} />

@@ -95,3 +95,25 @@ export interface DietGoals {
   target_fat: number;
   fitness_goal?: FitnessGoalType;
 }
+
+export type Gender = 'Male' | 'Female' | 'Other' | 'Prefer not to say';
+export type ActivityLevel = 'Sedentary' | 'Lightly Active' | 'Moderately Active' | 'Very Active';
+export type DietaryPreference = 'Vegetarian' | 'Vegan' | 'Non-Vegetarian' | 'Keto' | 'Paleo' | 'Gluten-Free';
+export type Allergy = 'Nuts' | 'Dairy' | 'Gluten' | 'Shellfish' | 'Soy';
+
+export interface UserProfile {
+  id: string;
+  email?: string;
+  name?: string;
+  age?: number;
+  gender?: Gender;
+  height?: number; // in cm
+  weight?: number; // in kg
+  fitness_goal?: FitnessGoalType;
+  activity_level?: ActivityLevel;
+  dietary_preferences?: DietaryPreference[];
+  allergies?: Allergy[];
+  onboarding_completed?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
