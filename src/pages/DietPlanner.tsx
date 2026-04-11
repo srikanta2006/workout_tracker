@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useDiet } from '../context/DietContext';
-import { Utensils, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X, Edit2, Search } from 'lucide-react';
-import type { DietRoutine, DietProgram, DietRoutineMeal, MealType, FoodItem } from '../types';
+import { Utensils, Plus, Calendar, Trash2, CheckCircle2, Copy, Edit2, Search } from 'lucide-react';
+import type { DietRoutine, DietRoutineMeal, MealType, FoodItem } from '../types';
 import { GLOBAL_FOODS } from '../data/globalFoods';
 import { CreateFoodModal } from '../components/diet/CreateFoodModal';
 import clsx from 'clsx';
