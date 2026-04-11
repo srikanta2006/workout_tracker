@@ -56,12 +56,18 @@ const foods = dataLines.map((line, index) => {
   const parts = parseCSVLine(line);
   if (parts.length < 5) return null;
   
-  // Clean name from quotes
   const name = parts[0].replace(/^"|"$/g, '');
   const calories = parseFloat(parts[1]) || 0;
   const carbs = parseFloat(parts[2]) || 0;
   const protein = parseFloat(parts[3]) || 0;
   const fat = parseFloat(parts[4]) || 0;
+  const sugar = parseFloat(parts[5]) || 0;
+  const fiber = parseFloat(parts[6]) || 0;
+  const sodium = parseFloat(parts[7]) || 0;
+  const calcium = parseFloat(parts[8]) || 0;
+  const iron = parseFloat(parts[9]) || 0;
+  const vitC = parseFloat(parts[10]) || 0;
+  const vitB = parseFloat(parts[11]) || 0; // Folate proxy
   
   return {
     id: `ind-csv-${index}`,
@@ -72,6 +78,16 @@ const foods = dataLines.map((line, index) => {
     base_protein: protein,
     base_carbs: carbs,
     base_fat: fat,
+    base_sugar: sugar,
+    base_fiber: fiber,
+    base_sodium: sodium,
+    base_calcium: calcium,
+    base_iron: iron,
+    base_vitC: vitC,
+    base_vitB: vitB,
+    base_vitA: 0,
+    base_vitD: 0,
+    base_cholesterol: 0,
     default_serving: 100,
     default_unit: 'g',
     is_verified: true,

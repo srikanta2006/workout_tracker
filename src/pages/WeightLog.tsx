@@ -26,7 +26,7 @@ export default function WeightLog() {
     e.preventDefault();
     if (!weightValue) return;
     setIsSubmitting(true);
-    await addWeightRecord(Number(weightValue));
+    await addWeightRecord({ weight: Number(weightValue) });
     setIsSubmitting(false);
     setWeightValue('');
   };

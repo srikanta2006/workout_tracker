@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import type { Meal, DietGoals, BodyweightRecord, FoodItem, MealType } from '../types';
-import { format, subDays } from 'date-fns';
+import type { Meal, DietGoals, BodyweightRecord, FoodItem, MealType, DietRoutine, DietProgram, ActiveDietProgramState } from '../types';
+import { format } from 'date-fns';
 
 interface DietContextType {
   meals: Meal[];
@@ -12,12 +12,28 @@ interface DietContextType {
   customFoods: FoodItem[];
   favoriteMeals: Meal[];
   selectedDate: Date;
+  uniqueMeals: Meal[];
   isLoading: boolean;
+
+  dietRoutines: DietRoutine[];
+  addDietRoutine: (routine: DietRoutine) => Promise<void>;
+  updateDietRoutine: (id: string, updated: DietRoutine) => Promise<void>;
+  deleteDietRoutine: (id: string) => Promise<void>;
+
+  dietPrograms: DietProgram[];
+  addDietProgram: (program: DietProgram) => Promise<void>;
+  deleteDietProgram: (id: string) => Promise<void>;
+
+  activeDietProgram: ActiveDietProgramState | null;
+  setActiveDietProgram: (state: ActiveDietProgramState | null) => Promise<void>;
 
   addMeal: (meal: Omit<Meal, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   updateMeal: (id: string, updates: Partial<Meal>) => Promise<void>;
   deleteMeal: (id: string) => Promise<void>;
   duplicateMeal: (mealType: MealType, sourceDateStr: string) => Promise<void>;
+  
+  getMealsInRange: (startDate: string, endDate: string) => Promise<Meal[]>;
+  getWaterInRange: (startDate: string, endDate: string) => Promise<{date: string, amount_ml: number}[]>;
   
   saveFavoriteMeal: (meal: Meal) => Promise<void>;
 
@@ -27,7 +43,7 @@ interface DietContextType {
 
   updateWater: (amount_ml: number) => Promise<void>;
   updateGoals: (goals: Omit<DietGoals, 'id' | 'user_id'>) => Promise<void>;
-  addWeightRecord: (weight: number) => Promise<void>;
+  addWeightRecord: (metrics: { weight: number; body_fat_pct?: number; muscle_mass_kg?: number; waist_cm?: number }) => Promise<void>;
   
   setSelectedDate: (date: Date) => void;
   getRecentFoods: () => FoodItem[];
@@ -46,7 +62,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
   
   const [customFoods, setCustomFoods] = useState<FoodItem[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
+  const [allHistoricalMeals, setAllHistoricalMeals] = useState<Meal[]>([]);
   
+  const [dietRoutines, setDietRoutines] = useState<DietRoutine[]>([]);
+  const [dietPrograms, setDietPrograms] = useState<DietProgram[]>([]);
+  const [activeDietProgram, setActiveDietProgramState] = useState<ActiveDietProgramState | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
 
   // Fallback storage wrappers incase Supabase tables don't exist yet
@@ -80,16 +101,22 @@ export function DietProvider({ children }: { children: ReactNode }) {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
     try {
-      // Fetch meals for selected date (we parse JSON items gracefully)
+      // Fetch meals
       const cachedMealsStr = localStorage.getItem('mx_meals');
-      const allMeals: Meal[] = cachedMealsStr ? JSON.parse(cachedMealsStr) : [];
+      const allLocalMeals: Meal[] = cachedMealsStr ? JSON.parse(cachedMealsStr) : [];
       
       try {
-        const { data: remoteMeals } = await supabase.from('meals').select('*').eq('user_id', user.id).eq('date', dateStr);
-        if (remoteMeals && remoteMeals.length > 0) setMeals(remoteMeals);
-        else setMeals(allMeals.filter(m => m.date === dateStr && m.user_id === user.id));
+        const { data: remoteMeals, error } = await supabase.from('meals').select('*').eq('user_id', user.id);
+        if (!error && remoteMeals) {
+            setAllHistoricalMeals(remoteMeals);
+            setMeals(remoteMeals.filter(m => m.date === dateStr));
+        } else {
+            setAllHistoricalMeals(allLocalMeals);
+            setMeals(allLocalMeals.filter(m => m.date === dateStr && m.user_id === user.id));
+        }
       } catch {
-        setMeals(allMeals.filter(m => m.date === dateStr && m.user_id === user.id));
+        setAllHistoricalMeals(allLocalMeals);
+        setMeals(allLocalMeals.filter(m => m.date === dateStr && m.user_id === user.id));
       }
 
       // Fetch Foods & Favorites
@@ -100,13 +127,22 @@ export function DietProvider({ children }: { children: ReactNode }) {
         base_protein: f.base_protein || f.protein || 0,
         base_carbs: f.base_carbs || f.carbs || 0,
         base_fat: f.base_fat || f.fat || 0,
+        base_fiber: f.base_fiber || 0,
+        base_sugar: f.base_sugar || 0,
+        base_sodium: f.base_sodium || 0,
+        base_cholesterol: f.base_cholesterol || 0,
+        base_vitA: f.base_vitA || 0,
+        base_vitB: f.base_vitB || 0,
+        base_vitC: f.base_vitC || 0,
+        base_vitD: f.base_vitD || 0,
+        base_calcium: f.base_calcium || 0,
+        base_iron: f.base_iron || 0,
         default_serving: f.default_serving || 100,
         default_unit: f.default_unit || 'g'
       }));
       setCustomFoods(migratedFoods);
       
       const favsRaw = await safelyFetchArray('favorite_meals', user.id, 'mx_fav_meals');
-      // Potential migration for favorites if needed
       setFavoriteMeals(favsRaw);
 
       // Fetch water and diet goals
@@ -118,12 +154,34 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
       const { data: weightData } = await supabase.from('bodyweight_records').select('*').eq('user_id', user.id).order('date', { ascending: true });
       setWeightRecords(weightData || []);
+
+      // Fetch Diet Routines & Programs
+      const { data: routinesData } = await supabase.from('diet_routines').select('*').eq('user_id', user.id);
+      if (routinesData) setDietRoutines(routinesData.map(r => ({ id: r.id, name: r.name, meals: r.meals })));
+      
+      const { data: programsData } = await supabase.from('diet_programs').select('*').eq('user_id', user.id);
+      if (programsData) setDietPrograms(programsData.map(p => ({ id: p.id, name: p.name, lengthInDays: p.length_in_days, schedule: p.schedule })));
+      
+      const { data: activeP } = await supabase.from('active_diet_program').select('*').eq('user_id', user.id).maybeSingle();
+      if (activeP) setActiveDietProgramState({ programId: activeP.program_id, startDate: activeP.start_date });
     } catch (error) {
       console.error('Error fetching diet data:', error);
     } finally {
       setIsLoading(false);
     }
   }, [user, selectedDate]);
+
+  const uniqueMeals = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: Meal[] = [];
+    [...allHistoricalMeals].sort((a,b) => b.date.localeCompare(a.date)).forEach(m => {
+      if (m.name && !seen.has(m.name.toLowerCase())) {
+        seen.add(m.name.toLowerCase());
+        unique.push(m);
+      }
+    });
+    return unique.slice(0, 20);
+  }, [allHistoricalMeals]);
 
   useEffect(() => {
     fetchData();
@@ -137,11 +195,13 @@ export function DietProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.from('meals').insert([payload]).select().single();
       if (error) throw error;
-      setMeals(prev => [...prev, data]);
+      setMeals(prev => [...prev.filter(m => m.id !== data.id), data]);
+      setAllHistoricalMeals(prev => [...prev.filter(m => m.id !== data.id), data]);
     } catch {
       // Local Fallback
-      const completeMeal = { ...payload, id: crypto.randomUUID(), created_at: new Date().toISOString() };
-      setMeals(prev => [...prev, completeMeal as Meal]);
+      const completeMeal = { ...payload, id: crypto.randomUUID(), created_at: new Date().toISOString() } as Meal;
+      setMeals(prev => [...prev, completeMeal]);
+      setAllHistoricalMeals(prev => [...prev, completeMeal]);
       const allLocalStr = localStorage.getItem('mx_meals');
       const allLocal = allLocalStr ? JSON.parse(allLocalStr) : [];
       localStorage.setItem('mx_meals', JSON.stringify([...allLocal, completeMeal]));
@@ -153,16 +213,16 @@ export function DietProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.from('meals').update(updates).eq('id', id);
       if (error) throw error;
       setMeals(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+      setAllHistoricalMeals(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
     } catch {
-      setMeals(prev => {
-        const next = prev.map(m => m.id === id ? { ...m, ...updates } : m);
-        const allLocalStr = localStorage.getItem('mx_meals');
-        if (allLocalStr) {
-           const nextAll = JSON.parse(allLocalStr).map((m: Meal) => m.id === id ? { ...m, ...updates } : m);
-           localStorage.setItem('mx_meals', JSON.stringify(nextAll));
-        }
-        return next;
-      });
+      const mapper = (m: Meal) => m.id === id ? { ...m, ...updates } : m;
+      setMeals(prev => prev.map(mapper));
+      setAllHistoricalMeals(prev => prev.map(mapper));
+      const allLocalStr = localStorage.getItem('mx_meals');
+      if (allLocalStr) {
+         const nextAll = JSON.parse(allLocalStr).map(mapper);
+         localStorage.setItem('mx_meals', JSON.stringify(nextAll));
+      }
     }
   };
 
@@ -170,9 +230,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
     try {
       await supabase.from('meals').delete().eq('id', id);
     } catch {
-      // ignoring error, handle local
+      // ignore
     } finally {
       setMeals(prev => prev.filter(m => m.id !== id));
+      setAllHistoricalMeals(prev => prev.filter(m => m.id !== id));
       const allLocalStr = localStorage.getItem('mx_meals');
       if (allLocalStr) {
          localStorage.setItem('mx_meals', JSON.stringify(JSON.parse(allLocalStr).filter((m: Meal) => m.id !== id)));
@@ -182,20 +243,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
   const duplicateMeal = async (mealType: MealType, sourceDateStr: string) => {
     if (!user) return;
-    
-    let sourceMeal: Meal | null = null;
-    try {
-      // Try fetching the exact meal from the network for that user
-      const { data, error } = await supabase.from('meals').select('*').eq('user_id', user.id).eq('date', sourceDateStr).eq('meal_type', mealType).maybeSingle();
-      if (data) sourceMeal = data;
-    } catch {
-      // Try local
-      const allLocalStr = localStorage.getItem('mx_meals');
-      if (allLocalStr) {
-        const found = JSON.parse(allLocalStr).find((m: Meal) => m.date === sourceDateStr && m.meal_type === mealType && m.user_id === user.id);
-        if (found) sourceMeal = found;
-      }
-    }
+    let sourceMeal = allHistoricalMeals.find(m => m.date === sourceDateStr && m.meal_type === mealType);
     
     if (sourceMeal) {
       await addMeal({
@@ -207,9 +255,52 @@ export function DietProvider({ children }: { children: ReactNode }) {
         protein: sourceMeal.protein,
         carbs: sourceMeal.carbs,
         fat: sourceMeal.fat,
+        fiber: sourceMeal.fiber || 0,
+        sugar: sourceMeal.sugar || 0,
+        sodium: sourceMeal.sodium || 0,
+        cholesterol: sourceMeal.cholesterol || 0,
+        vitA: sourceMeal.vitA || 0,
+        vitB: sourceMeal.vitB || 0,
+        vitC: sourceMeal.vitC || 0,
+        vitD: sourceMeal.vitD || 0,
+        calcium: sourceMeal.calcium || 0,
+        iron: sourceMeal.iron || 0,
         notes: sourceMeal.notes,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        status: 'PLANNED'
       });
+    }
+  };
+
+  const getMealsInRange = async (startDate: string, endDate: string): Promise<Meal[]> => {
+    if (!user) return [];
+    try {
+        const { data, error } = await supabase.from('meals')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .order('date', { ascending: true });
+        if (error) throw error;
+        return data || [];
+    } catch {
+        return allHistoricalMeals.filter(m => m.date >= startDate && m.date <= endDate && m.user_id === user.id);
+    }
+  };
+
+  const getWaterInRange = async (startDate: string, endDate: string) => {
+    if (!user) return [];
+    try {
+        const { data, error } = await supabase.from('water_logs')
+            .select('date, amount_ml')
+            .eq('user_id', user.id)
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .order('date', { ascending: true });
+        if (error) throw error;
+        return data || [];
+    } catch {
+        return [];
     }
   };
 
@@ -245,7 +336,6 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
   const saveFavoriteMeal = async (meal: Meal) => {
     if (!user) return;
-    // Creates a favorite meal template (doesn't have date)
     const payload = {
       user_id: user.id,
       name: meal.name,
@@ -260,14 +350,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
   };
 
   const getRecentFoods = () => {
-    // Scans across all local meals to find unique foods used recently
-    const allLocalStr = localStorage.getItem('mx_meals');
-    const allMeals: Meal[] = allLocalStr ? JSON.parse(allLocalStr) : [];
     const recentDbFoods: FoodItem[] = [];
     const seenMap = new Set<string>();
     
-    // Sort meals desc by date
-    allMeals.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(m => {
+    [...allHistoricalMeals].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(m => {
        m.items?.forEach(item => {
           if (!seenMap.has(item.food_item.name.toLowerCase())) {
              seenMap.add(item.food_item.name.toLowerCase());
@@ -292,24 +378,96 @@ export function DietProvider({ children }: { children: ReactNode }) {
     if (!error && data) setDietGoals(data);
   };
 
-  const addWeightRecord = async (weight: number) => {
+  const addWeightRecord = async (metrics: { weight: number; body_fat_pct?: number; muscle_mass_kg?: number; waist_cm?: number }) => {
     if (!user) return;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    const { data, error } = await supabase.from('bodyweight_records').upsert({ user_id: user.id, date: dateStr, weight }, { onConflict: 'user_id,date' }).select().single();
+    const { data, error } = await supabase.from('bodyweight_records').upsert({ 
+        user_id: user.id, 
+        date: dateStr, 
+        ...metrics 
+    }, { onConflict: 'user_id,date' }).select().single();
+
     if (!error && data) {
       setWeightRecords(prev => {
         const filtered = prev.filter(r => r.date !== dateStr);
-        return [...filtered, data].sort((a, b) => a.date.localeCompare(b.date));
+        const transformed: BodyweightRecord = {
+            id: data.id,
+            date: data.date,
+            weight: data.weight,
+            body_fat_pct: data.body_fat_pct,
+            muscle_mass_kg: data.muscle_mass_kg,
+            waist_cm: data.waist_cm
+        };
+        return [...filtered, transformed].sort((a, b) => a.date.localeCompare(b.date));
       });
     }
+  };
+
+  // --- Diet Routines & Programs Mutators ---
+  const addDietRoutine = async (routine: DietRoutine) => {
+    if (!user) return;
+    await supabase.from('diet_routines').insert({
+      id: routine.id, user_id: user.id, name: routine.name, meals: routine.meals
+    });
+    setDietRoutines(prev => [routine, ...prev]);
+  };
+
+  const updateDietRoutine = async (id: string, updated: DietRoutine) => {
+    if (!user) return;
+    await supabase.from('diet_routines').update({
+      name: updated.name, meals: updated.meals
+    }).eq('id', id).eq('user_id', user.id);
+    setDietRoutines(prev => prev.map(r => r.id === id ? updated : r));
+  };
+
+  const deleteDietRoutine = async (id: string) => {
+    if (!user) return;
+    await supabase.from('diet_routines').delete().eq('id', id).eq('user_id', user.id);
+    setDietRoutines(prev => prev.filter(r => r.id !== id));
+  };
+
+  const addDietProgram = async (program: DietProgram) => {
+    if (!user) return;
+    await supabase.from('diet_programs').insert({
+      id: program.id, user_id: user.id, name: program.name,
+      length_in_days: program.lengthInDays, schedule: program.schedule
+    });
+    setDietPrograms(prev => [...prev, program]);
+  };
+
+  const deleteDietProgram = async (id: string) => {
+    if (!user) return;
+    await supabase.from('diet_programs').delete().eq('id', id).eq('user_id', user.id);
+    setDietPrograms(prev => prev.filter(p => p.id !== id));
+    if (activeDietProgram?.programId === id) {
+      await supabase.from('active_diet_program').delete().eq('user_id', user.id);
+      setActiveDietProgramState(null);
+    }
+  };
+
+  const setActiveDietProgram = async (state: ActiveDietProgramState | null) => {
+    if (!user) return;
+    if (state) {
+      await supabase.from('active_diet_program').upsert(
+        { user_id: user.id, program_id: state.programId, start_date: state.startDate },
+        { onConflict: 'user_id' }
+      );
+    } else {
+      await supabase.from('active_diet_program').delete().eq('user_id', user.id);
+    }
+    setActiveDietProgramState(state);
   };
 
   return (
     <DietContext.Provider value={{ 
       meals, waterIntake, dietGoals, weightRecords, 
-      customFoods, favoriteMeals,
+      customFoods, favoriteMeals, uniqueMeals,
       selectedDate, isLoading, 
+      dietRoutines, addDietRoutine, updateDietRoutine, deleteDietRoutine,
+      dietPrograms, addDietProgram, deleteDietProgram,
+      activeDietProgram, setActiveDietProgram,
       addMeal, updateMeal, deleteMeal, duplicateMeal, saveFavoriteMeal,
+      getMealsInRange, getWaterInRange,
       addCustomFood, updateCustomFood, deleteCustomFood,
       updateWater, updateGoals, addWeightRecord,
       setSelectedDate, getRecentFoods, refreshData: fetchData

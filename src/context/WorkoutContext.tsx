@@ -108,6 +108,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
           date: row.date,
           muscleGroups: row.muscle_groups,
           exercises: row.exercises,
+          status: row.status,
         })));
       }
       if (r.data) {
@@ -156,6 +157,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     await supabase.from('workouts').insert({
       id: workout.id, user_id: uid, date: workout.date,
       muscle_groups: workout.muscleGroups, exercises: workout.exercises,
+      status: workout.status || 'COMPLETED',
     });
     setWorkouts(prev => [workout, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
@@ -164,6 +166,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     if (!uid) return;
     await supabase.from('workouts').update({
       date: updated.date, muscle_groups: updated.muscleGroups, exercises: updated.exercises,
+      status: updated.status || 'COMPLETED',
     }).eq('id', id).eq('user_id', uid);
     setWorkouts(prev => prev.map(w => w.id === id ? updated : w).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };

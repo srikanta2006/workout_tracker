@@ -1,13 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useDiet } from '../context/DietContext';
-import { Utensils, Trash2, Plus, Calendar, Clock, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
-import { format, subDays, addDays } from 'date-fns';
+import { Utensils, Trash2, Plus, Calendar, Clock, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
+import { format, subDays, addDays, differenceInDays } from 'date-fns';
 import { FoodDatabaseModal } from '../components/diet/FoodDatabaseModal';
 import type { MealType } from '../types';
 
 export default function MealLog() {
-  const { meals, deleteMeal, duplicateMeal, selectedDate, setSelectedDate } = useDiet();
+  const { 
+    meals, deleteMeal, duplicateMeal, updateMeal, selectedDate, setSelectedDate,
+    activeDietProgram, dietPrograms, dietRoutines, addMeal
+  } = useDiet();
   const [activeModalType, setActiveModalType] = useState<MealType | null>(null);
+  const [activeModalStatus, setActiveModalStatus] = useState<'PLANNED' | 'UNPLANNED'>('UNPLANNED');
   
   const formattedDate = format(selectedDate, 'EEEE, MMMM do');
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
@@ -22,13 +26,74 @@ export default function MealLog() {
       { type: 'snack', label: 'Snacks', icon: Clock }
   ];
 
-  /* Group meals by type for the selected day */
-  const groupedMeals = useMemo(() => {
-     return mealBlocks.reduce((acc, block) => {
-         acc[block.type] = meals.filter(m => m.meal_type === block.type);
-         return acc;
-     }, {} as Record<MealType, typeof meals>);
-  }, [meals]);
+  const activeProgram = dietPrograms.find(p => p.id === activeDietProgram?.programId);
+  const activeTemplate = useMemo(() => {
+     if (!activeProgram || !activeDietProgram) return null;
+     const diff = differenceInDays(selectedDate, new Date(activeDietProgram.startDate));
+     if (diff < 0) return null; // date is before program started
+     const dayNum = (diff % activeProgram.lengthInDays) + 1; // 1-indexed
+     const schedEntry = activeProgram.schedule.find(s => s.dayNumber === dayNum);
+     if (!schedEntry || !schedEntry.dietRoutineId) return null;
+     return dietRoutines.find(r => r.id === schedEntry.dietRoutineId) || null;
+  }, [activeProgram, activeDietProgram, selectedDate, dietRoutines]);
+
+  const loadTemplate = async () => {
+     if (!activeTemplate) return;
+     for (const m of activeTemplate.meals) {
+         await addMeal({
+             date: format(selectedDate, 'yyyy-MM-dd'),
+             meal_type: m.meal_type,
+             name: m.name,
+             items: [],
+             calories: m.calories,
+             protein: m.protein, carbs: m.carbs, fat: m.fat,
+             fiber: m.fiber, sugar: m.sugar, sodium: m.sodium, cholesterol: m.cholesterol,
+             vitA: m.vitA, vitB: m.vitB, vitC: m.vitC, vitD: m.vitD, calcium: m.calcium, iron: m.iron,
+             timestamp: new Date().toISOString(),
+             status: 'PLANNED'
+         });
+     }
+  };
+
+   /* Group meals by type for the selected day */
+   const groupedMeals = useMemo(() => {
+      return mealBlocks.reduce((acc, block) => {
+          acc[block.type] = meals.filter(m => m.meal_type === block.type);
+          return acc;
+      }, {} as Record<MealType, typeof meals>);
+   }, [meals]);
+
+   const renderMealCard = (meal: any) => (
+       <div key={meal.id} className="flex items-center justify-between p-3 rounded-2xl bg-[var(--color-bg-base)]/30 border border-[var(--color-border-subtle)]/30 hover:border-emerald-500/30 transition-all mb-2 group">
+           <div className="flex items-center gap-4">
+               {meal.status !== 'UNPLANNED' && (
+                   <button 
+                       onClick={() => updateMeal(meal.id, { status: meal.status === 'COMPLETED' ? 'PLANNED' : 'COMPLETED' })}
+                       className={`w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${meal.status === 'COMPLETED' ? 'bg-emerald-500 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-[var(--color-border-subtle)] hover:border-emerald-500/50 text-transparent'}`}
+                   >
+                       <Check className="w-3 h-3" />
+                   </button>
+               )}
+               <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                     <span className={`font-bold transition-all ${meal.status === 'COMPLETED' ? 'text-[var(--color-text-muted)] line-through decoration-[var(--color-text-muted)]/50' : 'text-[var(--color-text-main)]'}`}>{meal.name || 'Custom Log'}</span>
+                     {meal.status === 'UNPLANNED' && <span className="text-[8px] font-black uppercase tracking-widest bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded">Unplanned</span>}
+                  </div>
+                  {meal.notes && <span className="text-[10px] text-[var(--color-text-muted)] italic line-clamp-1">{meal.notes}</span>}
+               </div>
+           </div>
+           
+           <div className="flex items-center gap-4">
+               <span className={`text-xs font-black tabular-nums transition-all ${meal.status === 'COMPLETED' ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text-main)]'}`}>{meal.calories} kcal</span>
+               <button 
+                 onClick={() => deleteMeal(meal.id)}
+                 className="opacity-0 group-hover:opacity-100 p-2 text-[var(--color-text-muted)] hover:text-red-500 transition-all"
+               >
+                   <Trash2 className="w-4 h-4" />
+               </button>
+           </div>
+       </div>
+   );
 
   return (
     <div className="w-full h-full space-y-8 pb-32">
@@ -49,12 +114,33 @@ export default function MealLog() {
                   <button onClick={handlePrevDay} className="p-3 hover:bg-[var(--color-bg-base)] rounded-xl text-[var(--color-text-muted)] hover:text-emerald-500 transition-all active:scale-90">
                       <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <button onClick={handleNextDay} className="p-3 hover:bg-[var(--color-bg-base)] rounded-xl text-[var(--color-text-muted)] hover:text-emerald-500 transition-all active:scale-90">
+                  <button onClick={handleNextDay} disabled={isToday} className={`p-3 rounded-xl transition-all active:scale-90 ${isToday ? 'opacity-30 cursor-not-allowed text-[var(--color-text-muted)]' : 'hover:bg-[var(--color-bg-base)] text-[var(--color-text-muted)] hover:text-emerald-500'}`}>
                       <ChevronRight className="w-5 h-5" />
                   </button>
               </div>
           </div>
       </div>
+
+      {/* Active Template Banner */}
+      {activeTemplate && (
+          <div className="glass-card bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-fade-in-up">
+              <div>
+                  <h3 className="text-xl font-black text-[var(--color-text-main)] italic tracking-tight flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                     Suggested Plan: {activeTemplate.name}
+                  </h3>
+                  <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-1">
+                     {activeProgram?.name} — Day {(differenceInDays(selectedDate, new Date(activeDietProgram!.startDate)) % activeProgram!.lengthInDays) + 1}
+                  </p>
+              </div>
+              <button 
+                  onClick={loadTemplate}
+                  className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2 w-full md:w-auto justify-center"
+              >
+                  <Copy className="w-4 h-4" /> Load to Today's Log
+              </button>
+          </div>
+      )}
 
       {/* Aggregate Stats Summary */}
       <div className="glass-card rounded-[32px] p-6 grid grid-cols-2 md:grid-cols-4 gap-6 border border-white/5 relative overflow-hidden">
@@ -76,6 +162,8 @@ export default function MealLog() {
       <div className="space-y-6">
          {mealBlocks.map(block => {
              const blockMeals = groupedMeals[block.type];
+             const plannedList = blockMeals.filter(m => m.status === 'PLANNED' || m.status === 'COMPLETED');
+             const unplannedList = blockMeals.filter(m => m.status === 'UNPLANNED');
              const blockCals = blockMeals.reduce((a,b) => a + b.calories, 0);
              const blockP = blockMeals.reduce((a,b) => a + b.protein, 0);
              const blockC = blockMeals.reduce((a,b) => a + b.carbs, 0);
@@ -84,13 +172,13 @@ export default function MealLog() {
              return (
                  <div key={block.type} className="glass-card rounded-[32px] overflow-hidden border border-white/5">
                      {/* Block Header */}
-                     <div className="bg-[var(--color-bg-base)]/50 p-6 flex items-center justify-between border-b border-[var(--color-border-subtle)]/30">
+                     <div className="bg-[var(--color-bg-base)]/30 p-5 flex items-center justify-between border-b border-[var(--color-border-subtle)]/30">
                          <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center">
-                                 <block.icon className="w-6 h-6 text-emerald-500" />
+                             <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                                 <block.icon className="w-5 h-5 text-emerald-500" />
                              </div>
                              <div>
-                                 <h3 className="text-xl font-black text-[var(--color-text-main)] italic tracking-tight">{block.label}</h3>
+                                 <h3 className="text-lg font-black text-[var(--color-text-main)] italic tracking-tight">{block.label}</h3>
                                  <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{blockCals} kcal • {blockP}p • {blockC}c • {blockF}f</p>
                              </div>
                          </div>
@@ -99,68 +187,44 @@ export default function MealLog() {
                                 <button 
                                     onClick={() => duplicateMeal(block.type, format(subDays(selectedDate, 1), 'yyyy-MM-dd'))}
                                     title="Clone from yesterday"
-                                    className="p-3 text-[var(--color-text-muted)] hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+                                    className="p-2 text-[var(--color-text-muted)] hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
                                 >
                                     <Copy className="w-5 h-5" />
                                 </button>
                              )}
-                             <button
-                                 onClick={() => setActiveModalType(block.type)}
-                                 className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-                             >
-                                 <Plus className="w-4 h-4" /> Add Food
-                             </button>
                          </div>
                      </div>
 
                      {/* Logged Meals List */}
-                     <div className="p-6">
+                     <div className="p-4">
                          {blockMeals.length > 0 ? (
-                             <div className="space-y-4">
-                                 {blockMeals.map(meal => (
-                                     <div key={meal.id} className="group relative bg-[var(--color-bg-base)]/30 p-4 rounded-2xl border border-[var(--color-border-subtle)]/30 hover:border-emerald-500/30 transition-all">
-                                         
-                                         <div className="flex justify-between items-start mb-3">
-                                            <div className="flex flex-col">
-                                                <h4 className="font-bold text-[var(--color-text-main)]">{meal.name || 'Custom Log'}</h4>
-                                                <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">{meal.calories} kcal • {meal.timestamp ? format(new Date(meal.timestamp), 'h:mm a') : ''}</span>
-                                            </div>
-                                            <button 
-                                              onClick={() => deleteMeal(meal.id)}
-                                              className="p-2 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                         </div>
-
-                                         {/* Embedded Items */}
-                                         {meal.items && meal.items.length > 0 && (
-                                            <div className="mt-4 pt-4 border-t border-[var(--color-border-subtle)]/30 space-y-2">
-                                                {meal.items.map(item => (
-                                                    <div key={item.id} className="flex justify-between items-center text-sm">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-border-subtle)]" />
-                                                            <span className="text-[var(--color-text-muted)] font-medium">
-                                                                <span className="text-[var(--color-text-main)] font-bold">{item.food_item.name}</span> — {item.quantity}{item.unit}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-[10px] font-black text-[var(--color-text-muted)] tabular-nums">{item.calories} kcal</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                         )}
-                                         
-                                         {meal.notes && (
-                                             <div className="mt-3 text-xs text-[var(--color-text-muted)] italic pl-4 border-l-2 border-emerald-500/30">"{meal.notes}"</div>
-                                         )}
+                             <div className="flex flex-col">
+                                 {/* Planned List */}
+                                 {plannedList.length > 0 && (
+                                     <div className="mb-2">
+                                         {plannedList.map(renderMealCard)}
                                      </div>
-                                 ))}
+                                 )}
+
+                                 {/* Unplanned List */}
+                                 {unplannedList.length > 0 && (
+                                     <div className={plannedList.length > 0 ? "pt-2 border-t border-dashed border-[var(--color-border-subtle)]/50 mt-2" : ""}>
+                                         {unplannedList.map(renderMealCard)}
+                                     </div>
+                                 )}
                              </div>
                          ) : (
-                             <div className="py-8 text-center text-sm font-bold text-[var(--color-text-muted)] opacity-50 uppercase tracking-widest border border-dashed border-[var(--color-border-subtle)]/30 rounded-2xl">
+                             <div className="py-4 text-center text-[10px] font-bold text-[var(--color-text-muted)] opacity-50 uppercase tracking-widest border border-dashed border-[var(--color-border-subtle)]/30 rounded-xl mb-4">
                                  Empty Plate
                              </div>
                          )}
+
+                         <button
+                             onClick={() => { setActiveModalType(block.type); setActiveModalStatus('UNPLANNED'); }}
+                             className="w-full mt-2 py-3 bg-[var(--color-bg-base)]/50 hover:bg-[var(--color-bg-base)] text-[var(--color-text-muted)] hover:text-emerald-500 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-dashed border-[var(--color-border-subtle)]/50 hover:border-emerald-500/50"
+                         >
+                             <Plus className="w-3 h-3" /> Add Unplanned Item
+                         </button>
                      </div>
                  </div>
              );
@@ -170,6 +234,7 @@ export default function MealLog() {
       {activeModalType && (
           <FoodDatabaseModal 
              mealType={activeModalType} 
+             status={activeModalStatus}
              onClose={() => setActiveModalType(null)} 
           />
       )}

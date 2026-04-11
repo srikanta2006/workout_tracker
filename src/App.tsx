@@ -23,6 +23,7 @@ const MealLog = lazy(() => import('./pages/MealLog.tsx'));
 const WaterLog = lazy(() => import('./pages/WaterLog.tsx'));
 const DietStats = lazy(() => import('./pages/DietStats.tsx'));
 const WeightLog = lazy(() => import('./pages/WeightLog.tsx'));
+const BodyStats = lazy(() => import('./pages/BodyStats.tsx'));
 const DietPlanner = lazy(() => import('./pages/DietPlanner.tsx'));
 
 function App() {
@@ -61,6 +62,7 @@ function App() {
                         <Route path="water" element={<WaterLog />} />
                         <Route path="diet-stats" element={<DietStats />} />
                         <Route path="weight" element={<WeightLog />} />
+                        <Route path="body-stats" element={<BodyStats />} />
                         <Route path="planner" element={<DietPlanner />} />
                       </Route>
                     </Route>

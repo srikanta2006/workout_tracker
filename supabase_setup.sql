@@ -11,7 +11,8 @@ create table if not exists workouts (
   date          text        not null,
   muscle_groups jsonb,
   exercises     jsonb,
-  created_at    timestamptz default now()
+  created_at    timestamptz default now(),
+  status        text        default 'COMPLETED'
 );
 
 create table if not exists routines (

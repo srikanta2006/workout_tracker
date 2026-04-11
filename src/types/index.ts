@@ -2,6 +2,8 @@ export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Co
 
 export type DifficultyLevel = 'Easy' | 'Normal' | 'Tough' | 'With Spotter';
 
+export type ActivityStatus = 'PLANNED' | 'COMPLETED' | 'UNPLANNED';
+
 export interface WorkoutSet {
   id: string;
   setNumber: number;
@@ -25,6 +27,7 @@ export interface WorkoutSession {
   muscleGroups: MuscleGroup[];
   exercises: Exercise[];
   duration?: number; // In seconds
+  status?: ActivityStatus;
 }
 
 export interface Routine {
@@ -38,6 +41,9 @@ export interface BodyweightRecord {
   id: string;
   date: string; // yyyy-MM-dd format
   weight: number;
+  body_fat_pct?: number;
+  muscle_mass_kg?: number;
+  waist_cm?: number;
 }
 
 export interface Program {
@@ -82,6 +88,18 @@ export interface FoodItem {
   base_protein: number;
   base_carbs: number;
   base_fat: number;
+  // Micronutrients
+  base_fiber?: number;
+  base_sugar?: number;
+  base_sodium?: number;
+  base_cholesterol?: number;
+  base_vitA?: number;
+  base_vitB?: number;
+  base_vitC?: number;
+  base_vitD?: number;
+  base_calcium?: number;
+  base_iron?: number;
+  
   default_serving: number;
   default_unit: ServingUnit;
   serving_sizes?: ServingSize[];
@@ -99,6 +117,16 @@ export interface MealItem {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
+  sodium: number;
+  cholesterol: number;
+  vitA: number;
+  vitB: number;
+  vitC: number;
+  vitD: number;
+  calcium: number;
+  iron: number;
 }
 
 export interface Meal {
@@ -112,9 +140,20 @@ export interface Meal {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
+  sodium: number;
+  cholesterol: number;
+  vitA: number;
+  vitB: number;
+  vitC: number;
+  vitD: number;
+  calcium: number;
+  iron: number;
   notes?: string;
   timestamp?: string;
   created_at?: string;
+  status?: ActivityStatus;
 }
 
 export interface WaterLog {
@@ -133,7 +172,19 @@ export interface DietGoals {
   target_protein: number;
   target_carbs: number;
   target_fat: number;
+  target_fiber?: number;
+  target_sugar?: number;
+  target_sodium?: number;
+  target_cholesterol?: number;
+  target_vitA?: number;
+  target_vitB?: number;
+  target_vitC?: number;
+  target_vitD?: number;
+  target_calcium?: number;
+  target_iron?: number;
+  target_water?: number;
   fitness_goal?: FitnessGoalType;
+  target_weight?: number;
 }
 
 export type Gender = 'Male' | 'Female' | 'Other' | 'Prefer not to say';
@@ -156,4 +207,44 @@ export interface UserProfile {
   onboarding_completed?: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface DietRoutineMeal {
+  name: string;
+  meal_type: MealType;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+  sodium: number;
+  cholesterol: number;
+  vitA: number;
+  vitB: number;
+  vitC: number;
+  vitD: number;
+  calcium: number;
+  iron: number;
+}
+
+export interface DietRoutine {
+  id: string;
+  name: string;
+  meals: DietRoutineMeal[];
+}
+
+export interface DietProgram {
+  id: string;
+  name: string;
+  lengthInDays: number;
+  schedule: {
+    dayNumber: number;
+    dietRoutineId: string | null;
+  }[];
+}
+
+export interface ActiveDietProgramState {
+  programId: string;
+  startDate: string; // ISO yyyy-MM-dd
 }

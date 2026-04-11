@@ -318,7 +318,7 @@ export default function ActiveWorkout() {
         } else if (updated.some(ex => ex.name.trim())) {
            // If it's a new workout, auto-create it so it saves to history immediately
            const newId = crypto.randomUUID();
-           addWorkout({ id: newId, date, muscleGroups, exercises: updated });
+           addWorkout({ id: newId, date, muscleGroups, exercises: updated, status: isFreestyleMode ? 'UNPLANNED' : 'PLANNED' });
            // We use replace to put the ID in the URL without pushing history, 
            // so that subsequent ticks will update the existing session
            navigate(`/workout/${newId}`, { replace: true });
@@ -356,7 +356,8 @@ export default function ActiveWorkout() {
       date,
       muscleGroups,
       exercises,
-      duration: existingWorkout?.duration ? existingWorkout.duration + duration : duration
+      duration: existingWorkout?.duration ? existingWorkout.duration + duration : duration,
+      status: existingWorkout?.status || (isFreestyleMode ? 'UNPLANNED' : 'COMPLETED')
     };
 
     if (existingWorkout) {

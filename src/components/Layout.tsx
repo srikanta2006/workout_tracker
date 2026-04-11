@@ -24,7 +24,7 @@ export function Layout() {
     { name: 'Meal Log', path: '/meals', icon: UtensilsCrossed },
     { name: 'Water', path: '/water', icon: Droplets },
     { name: 'Analytics', path: '/diet-stats', icon: Activity },
-    { name: 'Weight', path: '/weight', icon: Scale },
+    { name: 'Body Hub', path: '/body-stats', icon: Scale },
     { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 

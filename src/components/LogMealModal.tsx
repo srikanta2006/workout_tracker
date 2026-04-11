@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Utensils, Flame, TrendingUp, Apple } from 'lucide-react';
 import { useDiet } from '../context/DietContext';
+import { format } from 'date-fns';
 import type { MealType } from '../types';
 import clsx from 'clsx';
 
@@ -9,7 +10,7 @@ interface LogMealModalProps {
 }
 
 export function LogMealModal({ onClose }: LogMealModalProps) {
-  const { addMeal, uniqueMeals } = useDiet();
+  const { addMeal, uniqueMeals, selectedDate } = useDiet();
   const [name, setName] = useState('');
   const [mealType, setMealType] = useState<MealType>('breakfast');
   const [calories, setCalories] = useState('');
@@ -24,19 +25,32 @@ export function LogMealModal({ onClose }: LogMealModalProps) {
 
     setIsSubmitting(true);
     await addMeal({
+      date: format(selectedDate, 'yyyy-MM-dd'),
       meal_type: mealType,
       name,
+      items: [],
       calories: Number(calories),
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
+      fiber: 0,
+      sugar: 0,
+      sodium: 0,
+      cholesterol: 0,
+      vitA: 0,
+      vitB: 0,
+      vitC: 0,
+      vitD: 0,
+      calcium: 0,
+      iron: 0,
+      timestamp: new Date().toISOString()
     });
     setIsSubmitting(false);
     onClose();
   };
 
   const handleSelectRecent = (meal: typeof uniqueMeals[0]) => {
-    setName(meal.name);
+    setName(meal.name || '');
     setMealType(meal.meal_type);
     setCalories(meal.calories.toString());
     setProtein(meal.protein.toString());

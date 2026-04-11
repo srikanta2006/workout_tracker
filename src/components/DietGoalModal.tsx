@@ -12,6 +12,7 @@ export function DietGoalModal({ onClose }: DietGoalModalProps) {
   const [protein, setProtein] = useState('150');
   const [carbs, setCarbs] = useState('200');
   const [fat, setFat] = useState('70');
+  const [water, setWater] = useState('3000');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export function DietGoalModal({ onClose }: DietGoalModalProps) {
       setProtein(dietGoals.target_protein.toString());
       setCarbs(dietGoals.target_carbs.toString());
       setFat(dietGoals.target_fat.toString());
+      if (dietGoals.target_water) setWater(dietGoals.target_water.toString());
     }
   }, [dietGoals]);
 
@@ -31,6 +33,7 @@ export function DietGoalModal({ onClose }: DietGoalModalProps) {
       target_protein: Number(protein),
       target_carbs: Number(carbs),
       target_fat: Number(fat),
+      target_water: Number(water),
     });
     setIsSubmitting(false);
     onClose();
@@ -114,6 +117,21 @@ export function DietGoalModal({ onClose }: DietGoalModalProps) {
                   required
                 />
               </div>
+            </div>
+
+            {/* Water */}
+            <div className="space-y-2 pt-2 border-t border-[var(--color-border-subtle)]/30">
+              <div className="flex items-center gap-1.2 px-1">
+                <span className="w-3 h-3 text-blue-500 font-bold">💧</span>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Daily Water Target (ml)</label>
+              </div>
+              <input
+                type="number"
+                value={water}
+                onChange={e => setWater(e.target.value)}
+                className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]/30 rounded-xl px-5 py-3 font-bold text-[var(--color-text-main)] focus:border-blue-500/50 outline-none transition-all"
+                required
+              />
             </div>
 
             <div className="pt-4">

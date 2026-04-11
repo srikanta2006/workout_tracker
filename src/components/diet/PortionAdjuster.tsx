@@ -83,11 +83,21 @@ export function PortionAdjuster({ food, onConfirm, onCancel }: PortionAdjusterPr
 
   const ratio = getRatio();
 
-  const currentMacros = {
+  const currentNutrients = {
     calories: Math.round(food.base_calories * ratio),
     protein: Number((food.base_protein * ratio).toFixed(1)),
     carbs: Number((food.base_carbs * ratio).toFixed(1)),
-    fat: Number((food.base_fat * ratio).toFixed(1))
+    fat: Number((food.base_fat * ratio).toFixed(1)),
+    fiber: Number(((food.base_fiber || 0) * ratio).toFixed(1)),
+    sugar: Number(((food.base_sugar || 0) * ratio).toFixed(1)),
+    sodium: Number(((food.base_sodium || 0) * ratio).toFixed(1)),
+    cholesterol: Number(((food.base_cholesterol || 0) * ratio).toFixed(1)),
+    vitA: Number(((food.base_vitA || 0) * ratio).toFixed(1)),
+    vitB: Number(((food.base_vitB || 0) * ratio).toFixed(1)),
+    vitC: Number(((food.base_vitC || 0) * ratio).toFixed(1)),
+    vitD: Number(((food.base_vitD || 0) * ratio).toFixed(1)),
+    calcium: Number(((food.base_calcium || 0) * ratio).toFixed(1)),
+    iron: Number(((food.base_iron || 0) * ratio).toFixed(1)),
   };
 
   const handleConfirm = () => {
@@ -96,7 +106,7 @@ export function PortionAdjuster({ food, onConfirm, onCancel }: PortionAdjusterPr
       food_item: food,
       quantity: Number(quantity) || 1,
       unit,
-      ...currentMacros
+      ...currentNutrients
     });
   };
 
@@ -148,28 +158,69 @@ export function PortionAdjuster({ food, onConfirm, onCancel }: PortionAdjusterPr
                 </div>
             </div>
 
-            {/* Live Macro Output */}
-            <div className="grid grid-cols-4 gap-3 mb-8">
+            {/* Live Nutrient Output */}
+            <div className="grid grid-cols-4 gap-3 mb-6">
                  <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]/30 rounded-2xl p-3 flex flex-col items-center justify-center">
                     <Flame className="w-4 h-4 text-orange-500 mb-1" />
-                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{currentMacros.calories}</span>
+                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{currentNutrients.calories}</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)] mt-1">kcal</span>
                  </div>
                  <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]/30 rounded-2xl p-3 flex flex-col items-center justify-center">
                     <Flame className="w-4 h-4 text-emerald-500 mb-1" />
-                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{Math.round(currentMacros.protein)}</span>
+                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{Math.round(currentNutrients.protein)}</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)] mt-1">Prot</span>
                  </div>
                  <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]/30 rounded-2xl p-3 flex flex-col items-center justify-center">
                     <TrendingUp className="w-4 h-4 text-amber-500 mb-1" />
-                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{Math.round(currentMacros.carbs)}</span>
+                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{Math.round(currentNutrients.carbs)}</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)] mt-1">Carb</span>
                  </div>
                  <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]/30 rounded-2xl p-3 flex flex-col items-center justify-center">
                     <Apple className="w-4 h-4 text-pink-500 mb-1" />
-                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{Math.round(currentMacros.fat)}</span>
+                    <span className="font-black text-[var(--color-text-main)] text-xl leading-none">{Math.round(currentNutrients.fat)}</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)] mt-1">Fat</span>
                  </div>
+            </div>
+
+            {/* Micro Nutrients Grid */}
+            <div className="bg-[var(--color-bg-base)]/50 border border-[var(--color-border-subtle)]/30 rounded-[24px] p-5 mb-8">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)] mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-3 h-3" /> Micronutrients Facts
+                </h3>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Fiber</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.fiber}g</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Sugar</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.sugar}g</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Sodium</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.sodium}mg</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Calcium</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.calcium}mg</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Iron</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.iron}mg</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Vit C</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.vitC}mg</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Folate (B9)</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.vitB}µg</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">Cholest.</span>
+                        <span className="text-xs font-black text-[var(--color-text-main)]">{currentNutrients.cholesterol}mg</span>
+                    </div>
+                </div>
             </div>
 
             <button 

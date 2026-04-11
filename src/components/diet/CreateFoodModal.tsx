@@ -62,6 +62,17 @@ export function CreateFoodModal({ onConfirm, onCancel }: CreateFoodModalProps) {
       base_carbs: Number(carbs) || 0,
       base_fat: Number(fat) || 0,
       
+      base_fiber: 0,
+      base_sugar: 0,
+      base_sodium: 0,
+      base_cholesterol: 0,
+      base_vitA: 0,
+      base_vitB: 0,
+      base_vitC: 0,
+      base_vitD: 0,
+      base_calcium: 0,
+      base_iron: 0,
+      
       default_serving: Number(defaultServing),
       default_unit: defaultUnit,
       
@@ -169,7 +180,7 @@ export function CreateFoodModal({ onConfirm, onCancel }: CreateFoodModalProps) {
                         <p className="text-[10px] font-medium text-[var(--color-text-muted)]/60 px-1 italic">Optional. Define quick shortcuts like "1 Bowl" = 150g.</p>
                     ) : (
                         <div className="space-y-2">
-                           {customServings.map((serving, idx) => (
+                           {customServings.map((serving) => (
                                <div key={serving.id} className="flex gap-2 items-center">
                                    <input type="text" placeholder='e.g. "1 Slice"' value={serving.name} onChange={e => updateCustomServing(serving.id, 'name', e.target.value)}
                                       className="flex-[2] bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]/30 rounded-xl px-4 py-3 font-bold text-sm text-[var(--color-text-main)] focus:border-emerald-500/50 outline-none transition-all" />

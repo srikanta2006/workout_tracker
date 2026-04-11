@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS public.meals (
     protein INTEGER NOT NULL DEFAULT 0,
     carbs INTEGER NOT NULL DEFAULT 0,
     fat INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    status TEXT DEFAULT 'COMPLETED'
 );
 
 -- Water Logs Table: Tracks daily hydration
@@ -63,4 +64,45 @@ CREATE TABLE IF NOT EXISTS public.bodyweight_records (
 ALTER TABLE public.bodyweight_records ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own weight records" ON public.bodyweight_records
+    FOR ALL USING (auth.uid() = user_id);
+
+-- Diet Routines Table: Stores day templates for diet
+CREATE TABLE IF NOT EXISTS public.diet_routines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    meals JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Diet Programs Table: Stores multi-week schedules
+CREATE TABLE IF NOT EXISTS public.diet_programs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    length_in_days INTEGER NOT NULL DEFAULT 7,
+    schedule JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Active Diet Program Table: Maps user to currently active schedule
+CREATE TABLE IF NOT EXISTS public.active_diet_program (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    program_id UUID REFERENCES public.diet_programs(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.diet_routines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.diet_programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.active_diet_program ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own diet routines" ON public.diet_routines
+    FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage their own diet programs" ON public.diet_programs
+    FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage their active diet program" ON public.active_diet_program
     FOR ALL USING (auth.uid() = user_id);

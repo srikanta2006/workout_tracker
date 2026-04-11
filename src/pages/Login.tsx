@@ -25,6 +25,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -32,11 +33,17 @@ export default function Login() {
 
   const handleOAuth = async (provider: 'google') => {
     setError('');
-    const { error } = await supabase.auth.signInWithOAuth({ 
-      provider,
-      options: { redirectTo: window.location.origin } 
-    });
-    if (error) setError(error.message);
+    setSocialLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider,
+        options: { redirectTo: window.location.origin } 
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message);
+      setSocialLoading(false);
+    }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -124,8 +131,9 @@ export default function Login() {
           {tab !== 'reset' && (
             <>
               <div className="mb-6">
-                <button type="button" onClick={() => handleOAuth('google')} className="w-full flex items-center justify-center p-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-base)]/50 hover:bg-[var(--color-bg-base)] transition-colors text-[var(--color-text-main)] font-bold shadow-sm">
-                  <GoogleIcon /> Continue with Google
+                <button type="button" onClick={() => handleOAuth('google')} disabled={socialLoading || loading} className="w-full flex items-center justify-center p-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-base)]/50 hover:bg-[var(--color-bg-base)] transition-colors text-[var(--color-text-main)] font-bold shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                  {socialLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <GoogleIcon />} 
+                  {socialLoading ? 'Connecting...' : 'Continue with Google'}
                 </button>
               </div>
               <div className="flex items-center gap-3 mb-6">

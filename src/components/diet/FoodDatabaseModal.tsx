@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { X, Search, Plus, Utensils, Clock, Heart, Apple, Check, Trash2, Zap, BadgeCheck } from 'lucide-react';
+import { X, Search, Plus, Utensils, Clock, Apple, Check, Trash2, Zap, BadgeCheck } from 'lucide-react';
 import { useDiet } from '../../context/DietContext';
 import { PortionAdjuster } from './PortionAdjuster';
 import { CreateFoodModal } from './CreateFoodModal';
@@ -7,6 +7,7 @@ import type { FoodItem, MealItem, MealType } from '../../types';
 
 interface FoodDatabaseModalProps {
   mealType: MealType;
+  status: 'PLANNED' | 'UNPLANNED';
   onClose: () => void;
 }
 
@@ -14,7 +15,7 @@ import { GLOBAL_FOODS } from '../../data/globalFoods';
 
 type TabType = 'Search' | 'Recent' | 'My Foods' | 'Quick Add';
 
-export function FoodDatabaseModal({ mealType, onClose }: FoodDatabaseModalProps) {
+export function FoodDatabaseModal({ mealType, status, onClose }: FoodDatabaseModalProps) {
   const { addMeal, customFoods, getRecentFoods, addCustomFood, deleteCustomFood, selectedDate } = useDiet();
   const [activeTab, setActiveTab] = useState<TabType>('Search');
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,6 +78,16 @@ export function FoodDatabaseModal({ mealType, onClose }: FoodDatabaseModalProps)
   const totalProtein = stagedItems.reduce((acc, item) => acc + item.protein, 0);
   const totalCarbs = stagedItems.reduce((acc, item) => acc + item.carbs, 0);
   const totalFat = stagedItems.reduce((acc, item) => acc + item.fat, 0);
+  const totalFiber = stagedItems.reduce((acc, item) => acc + item.fiber, 0);
+  const totalSugar = stagedItems.reduce((acc, item) => acc + item.sugar, 0);
+  const totalSodium = stagedItems.reduce((acc, item) => acc + item.sodium, 0);
+  const totalCholesterol = stagedItems.reduce((acc, item) => acc + item.cholesterol, 0);
+  const totalVitA = stagedItems.reduce((acc, item) => acc + item.vitA, 0);
+  const totalVitB = stagedItems.reduce((acc, item) => acc + item.vitB, 0);
+  const totalVitC = stagedItems.reduce((acc, item) => acc + item.vitC, 0);
+  const totalVitD = stagedItems.reduce((acc, item) => acc + item.vitD, 0);
+  const totalCalcium = stagedItems.reduce((acc, item) => acc + item.calcium, 0);
+  const totalIron = stagedItems.reduce((acc, item) => acc + item.iron, 0);
 
   const handleCommitStaging = async () => {
     if (stagedItems.length === 0) return;
@@ -91,7 +102,18 @@ export function FoodDatabaseModal({ mealType, onClose }: FoodDatabaseModalProps)
       protein: totalProtein,
       carbs: totalCarbs,
       fat: totalFat,
-      timestamp: new Date().toISOString()
+      fiber: totalFiber,
+      sugar: totalSugar,
+      sodium: totalSodium,
+      cholesterol: totalCholesterol,
+      vitA: totalVitA,
+      vitB: totalVitB,
+      vitC: totalVitC,
+      vitD: totalVitD,
+      calcium: totalCalcium,
+      iron: totalIron,
+      timestamp: new Date().toISOString(),
+      status: status
     });
     
     setLoading(false);
@@ -131,7 +153,17 @@ export function FoodDatabaseModal({ mealType, onClose }: FoodDatabaseModalProps)
           calories: cals,
           protein: p,
           carbs: c,
-          fat: f
+          fat: f,
+          fiber: 0,
+          sugar: 0,
+          sodium: 0,
+          cholesterol: 0,
+          vitA: 0,
+          vitB: 0,
+          vitC: 0,
+          vitD: 0,
+          calcium: 0,
+          iron: 0
       }]);
 
       setQaCals(''); setQaP(''); setQaC(''); setQaF('');
@@ -150,7 +182,9 @@ export function FoodDatabaseModal({ mealType, onClose }: FoodDatabaseModalProps)
                    <h2 className="text-2xl font-black text-[var(--color-text-main)] tracking-tight italic uppercase flex items-center gap-2">
                        <Utensils className="w-6 h-6 text-emerald-500" /> Database
                    </h2>
-                   <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest mt-1 ml-8">Logging {mealType}</p>
+                   <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest mt-1 ml-8">
+                     {status === 'PLANNED' ? 'Planning' : 'Logging'} {mealType}
+                   </p>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-[var(--color-bg-base)] rounded-full transition-colors flex-shrink-0 bg-[var(--color-bg-base)] border border-white/5">
                  <X className="w-6 h-6 text-[var(--color-text-muted)]" />

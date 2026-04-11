@@ -5,12 +5,14 @@ import { useWorkout } from '../context/WorkoutContext';
 import { useDiet } from '../context/DietContext';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
-import type { UserProfile } from '../types';
+import clsx from 'clsx';
+import type { UserProfile, Gender, ActivityLevel } from '../types';
+import { calculateBMR, calculateTDEE, calculateBMI, getBMICategory, getGoalRecommendation } from '../utils/healthCalculations';
 
 export default function Settings() {
   const { user, profile, updateProfile } = useAuth();
   const { workouts, routines, bodyweights } = useWorkout();
-  const { meals, dietGoals } = useDiet();
+  const { meals, dietGoals, updateGoals } = useDiet();
   
   const [activeTab, setActiveTab] = useState<'account' | 'profile'>('profile');
 
@@ -142,12 +144,28 @@ export default function Settings() {
                 )}
               </div>
 
+              {/* Health Scorecard (Computed) */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                  {[
+                      { label: 'BMR', value: calculateBMR(profileUpdates) || '-', unit: 'kcal', color: 'text-orange-500' },
+                      { label: 'TDEE', value: (calculateBMR(profileUpdates) ? calculateTDEE(calculateBMR(profileUpdates)!, profileUpdates.activity_level) : '-'), unit: 'kcal', color: 'text-blue-500' },
+                      { label: 'BMI', value: (profileUpdates.weight && profileUpdates.height ? calculateBMI(profileUpdates.weight, profileUpdates.height) : '-'), unit: getBMICategory(calculateBMI(profileUpdates.weight || 0, profileUpdates.height || 1)), color: 'text-emerald-500' },
+                  ].map((stat, i) => (
+                      <div key={i} className="bg-[var(--color-bg-base)]/50 border border-[var(--color-border-subtle)]/30 rounded-2xl p-4 text-center">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)] block mb-1">{stat.label}</span>
+                          <div className={clsx("text-lg font-black tracking-tight", stat.color)}>{stat.value}</div>
+                          <span className="text-[8px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{stat.unit}</span>
+                      </div>
+                  ))}
+              </div>
+
               {!isEditingProfile ? (
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Name</span><p className="text-lg font-medium text-[var(--color-text-main)]">{profile?.name || '-'}</p></div>
                   <div><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Age</span><p className="text-lg font-medium text-[var(--color-text-main)]">{profile?.age ? `${profile.age} yrs` : '-'}</p></div>
                   <div><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Height</span><p className="text-lg font-medium text-[var(--color-text-main)]">{profile?.height ? `${profile.height} cm` : '-'}</p></div>
                   <div><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Weight</span><p className="text-lg font-medium text-[var(--color-text-main)]">{profile?.weight ? `${profile.weight} kg` : '-'}</p></div>
+                  <div><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Target Weight</span><p className="text-lg font-medium text-emerald-500 font-bold">{dietGoals?.target_weight ? `${dietGoals.target_weight} kg` : '-'}</p></div>
                   <div className="col-span-2"><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Goal</span><p className="text-lg font-medium text-[var(--color-text-main)] capitalize">{profile?.fitness_goal?.replace('_', ' ') || '-'}</p></div>
                   <div className="col-span-2"><span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-bold block mb-1">Dietary Config</span>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -172,14 +190,60 @@ export default function Settings() {
                     <div><label className="text-xs font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Weight (kg)</label>
                       <input type="number" value={profileUpdates.weight || ''} onChange={e => setProfileUpdates({...profileUpdates, weight: Number(e.target.value)})} className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl py-3 px-4 text-sm focus:border-[var(--color-brand-500)] outline-none" />
                     </div>
+                    <div><label className="text-xs font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Target Weight (kg)</label>
+                      <input type="number" value={dietGoals?.target_weight || ''} onChange={e => updateGoals({...dietGoals!, target_weight: Number(e.target.value)})} className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl py-3 px-4 text-sm focus:border-[var(--color-brand-500)] outline-none" />
+                    </div>
+                    <div className="col-span-2">
+                       <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase mb-2 block">Personal Archetype</label>
+                       <div className="grid grid-cols-2 gap-4">
+                           <select value={profileUpdates.gender || ''} onChange={e => setProfileUpdates({...profileUpdates, gender: e.target.value as Gender})} className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl py-3 px-4 text-sm focus:border-[var(--color-brand-500)] outline-none">
+                              <option value="">Select Gender</option>
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                           </select>
+                           <select value={profileUpdates.activity_level || ''} onChange={e => setProfileUpdates({...profileUpdates, activity_level: e.target.value as ActivityLevel})} className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl py-3 px-4 text-sm focus:border-[var(--color-brand-500)] outline-none">
+                              <option value="Sedentary">Sedentary</option>
+                              <option value="Lightly Active">Lightly Active</option>
+                              <option value="Moderately Active">Moderately Active</option>
+                              <option value="Very Active">Very Active</option>
+                           </select>
+                       </div>
+                    </div>
                     <div className="col-span-2">
                        <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Goal</label>
                        <select value={profileUpdates.fitness_goal || ''} onChange={e => setProfileUpdates({...profileUpdates, fitness_goal: e.target.value as any})} className="w-full bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl py-3 px-4 text-sm focus:border-[var(--color-brand-500)] outline-none">
                           <option value="lose_weight">Lose Weight</option>
                           <option value="gain_weight">Build Muscle</option>
+                          <option value="cut">Extreme Cut</option>
+                          <option value="bulk">Heavy Bulk</option>
                           <option value="maintain">Maintain</option>
                        </select>
                     </div>
+                  </div>
+
+                  <div className="pt-4">
+                      <button 
+                        onClick={() => {
+                            const bmr = calculateBMR(profileUpdates);
+                            if (bmr && profileUpdates.weight && profileUpdates.fitness_goal) {
+                                const tdee = calculateTDEE(bmr, profileUpdates.activity_level);
+                                const recommendation = getGoalRecommendation(tdee, profileUpdates.fitness_goal, profileUpdates.weight);
+                                updateGoals({
+                                    target_calories: recommendation.calories,
+                                    target_protein: recommendation.protein,
+                                    target_carbs: recommendation.carbs,
+                                    target_fat: recommendation.fat,
+                                    fitness_goal: profileUpdates.fitness_goal
+                                });
+                                alert(`Smart goals applied! Calories: ${recommendation.calories}kcal. Macros: P:${recommendation.protein}g C:${recommendation.carbs}g F:${recommendation.fat}g`);
+                            } else {
+                                alert("Please fill age, height, weight, gender, and goal first.");
+                            }
+                        }}
+                        className="w-full py-3 bg-[var(--color-brand-500)]/10 border border-[var(--color-brand-500)]/30 text-[var(--color-brand-600)] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[var(--color-brand-500)] hover:text-white transition-all shadow-sm"
+                      >
+                         Generate Smart Goal Recommendations
+                      </button>
                   </div>
                 </div>
               )}
