@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useWorkoutState } from '../hooks/useWorkoutState';
-import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X, Edit2 } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X, Edit2, Compass, Download, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Program, Routine } from '../types';
+import type { Program, Routine, MuscleGroup } from '../types';
+import { DEFAULT_ROUTINES, type DefaultDayTemplate, type DefaultRoutine } from '../data/defaultRoutines';
 import clsx from 'clsx';
 
 export default function Routines() {
-  const { routines, deleteRoutine, programs, addProgram, deleteProgram, activeProgram, setActiveProgram } = useWorkoutState();
+  const { routines, addRoutine, deleteRoutine, programs, addProgram, deleteProgram, activeProgram, setActiveProgram } = useWorkoutState();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'templates' | 'programs'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'programs' | 'discover'>('templates');
   const [isCreatingProgram, setIsCreatingProgram] = useState(false);
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   // New Program State
   const [newProgramName, setNewProgramName] = useState('');
@@ -27,6 +29,61 @@ export default function Routines() {
       updatedSchedule[i] = newProgramSchedule[week1Day] || null;
     }
     setNewProgramSchedule(updatedSchedule);
+  };
+
+  const handleImportRoutine = async (defRoutine: DefaultRoutine) => {
+    if (isImporting) return;
+    setIsImporting(true);
+    try {
+      const createdRoutineIds: Record<number, string> = {};
+      
+      for (let i = 0; i < defRoutine.days.length; i++) {
+        const dTemplate = defRoutine.days[i];
+        
+        const newRoutine: Routine = {
+          id: crypto.randomUUID(),
+          name: `${defRoutine.name.split(' ')[0]} - ${dTemplate.name}`,
+          muscleGroups: [] as MuscleGroup[], // Could be derived from focus, leaving empty as general tag
+          exercises: dTemplate.exercises.map(ex => ({
+            id: crypto.randomUUID(),
+            name: ex.name,
+            notes: ex.notes,
+            sets: Array.from({ length: ex.sets }).map((_, sIdx) => ({
+              id: crypto.randomUUID(),
+              setNumber: sIdx + 1,
+              reps: ex.reps,
+              weight: '',
+            }))
+          }))
+        };
+        
+        await addRoutine(newRoutine);
+        createdRoutineIds[i + 1] = newRoutine.id;
+      }
+
+      const lengthInDays = 7;
+      const schedule = Array.from({ length: lengthInDays }).map((_, i) => ({
+        dayNumber: i + 1,
+        routineId: i < defRoutine.days.length ? createdRoutineIds[i + 1] : null
+      }));
+
+      const newProgram: Program = {
+        id: crypto.randomUUID(),
+        name: defRoutine.name,
+        lengthInDays,
+        schedule
+      };
+
+      await addProgram(newProgram);
+      
+      setActiveTab('programs');
+      setIsCreatingProgram(false);
+    } catch (e) {
+      console.error("Failed to import routine", e);
+      alert("Failed to import routine.");
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleSaveProgram = () => {
@@ -75,18 +132,24 @@ export default function Routines() {
           Build single Day Templates, then combine them into multi-week Routines.
         </p>
 
-        <div className="flex glass-panel rounded-xl p-1 mt-4 gap-1">
+        <div className="flex glass-panel rounded-xl p-1 mt-4 gap-1 overflow-x-auto custom-scrollbar">
           <button 
             onClick={() => { setActiveTab('templates'); setIsCreatingProgram(false); }}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'templates' ? 'bg-[var(--color-bg-base)] text-[var(--color-brand-600)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
+            className={`whitespace-nowrap flex-1 py-2 px-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'templates' ? 'bg-[var(--color-bg-base)] text-[var(--color-brand-600)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
           >
             Day Templates
           </button>
           <button 
             onClick={() => setActiveTab('programs')}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'programs' ? 'bg-[var(--color-bg-base)] text-[var(--color-brand-600)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
+            className={`whitespace-nowrap flex-1 py-2 px-3 text-sm font-bold rounded-lg transition-all ${activeTab === 'programs' ? 'bg-[var(--color-bg-base)] text-[var(--color-brand-600)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
           >
             Routines (Weeks)
+          </button>
+          <button 
+            onClick={() => setActiveTab('discover')}
+            className={`whitespace-nowrap flex-1 py-2 px-3 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${activeTab === 'discover' ? 'bg-[var(--color-brand-500)] text-white shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'}`}
+          >
+            <Compass className="w-4 h-4" /> Discover
           </button>
         </div>
       </section>
@@ -335,11 +398,57 @@ export default function Routines() {
                   onClick={() => setIsCreatingProgram(true)}
                   className="w-full h-full min-h-[160px] border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/5 transition-colors flex flex-col justify-center items-center gap-2"
                 >
-                  <Plus className="w-8 h-8" /> Assemble New Routine Check
+                  <Plus className="w-8 h-8" /> Assemble New Routine
                 </button>
               </>
             )}
           </>
+        )}
+
+        {/* DISCOVER TAB */}
+        {activeTab === 'discover' && (
+          <div className="col-span-full">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2 mb-2">
+                <Compass className="w-5 h-5 text-[var(--color-brand-500)]" />
+                Pre-built Routines
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)]">Select from our library of verified training programs to instantly populate your planner.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {DEFAULT_ROUTINES.map((defRoutine, index) => (
+                <div key={index} className={clsx("glass-card rounded-3xl p-6 shadow-premium border border-[var(--color-border-subtle)] hover:border-[var(--color-brand-500)]/30 transition-all duration-300 flex flex-col h-full", `stagger-${Math.min(index + 1, 5)}`)}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="text-lg font-bold text-[var(--color-text-main)] mb-1">{defRoutine.name}</h4>
+                      <div className="flex gap-2 flex-wrap mt-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[var(--color-brand-500)]/10 text-[var(--color-brand-600)] px-2 py-0.5 rounded-full border border-[var(--color-brand-500)]/20">
+                          {defRoutine.goal.replace('_', ' ')}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[var(--color-bg-base)] text-[var(--color-text-muted)] px-2 py-0.5 rounded-full border border-[var(--color-border-subtle)]">
+                          {defRoutine.days_per_week} Days / Wk
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-[var(--color-text-muted)] mb-6 flex-1">
+                    {defRoutine.description}
+                  </p>
+                  
+                  <button 
+                    onClick={() => handleImportRoutine(defRoutine)}
+                    disabled={isImporting}
+                    className="w-full py-3 bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-600)] text-white rounded-xl font-bold flex justify-center items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {isImporting ? 'Importing...' : 'Import Routine'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
