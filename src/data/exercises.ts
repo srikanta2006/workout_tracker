@@ -64,3 +64,48 @@ export const EXERCISE_DATABASE: Record<MuscleGroup, string[]> = {
 
 // Flattened master list for routines where muscle group is mixed or missing
 export const ALL_EXERCISES = Array.from(new Set(Object.values(EXERCISE_DATABASE).flat())).sort();
+
+export const addCustomExercise = (name: string, group: MuscleGroup) => {
+  if (!EXERCISE_DATABASE[group]) return;
+  if (!EXERCISE_DATABASE[group].includes(name)) {
+    EXERCISE_DATABASE[group].push(name);
+    EXERCISE_DATABASE[group].sort();
+    if (!ALL_EXERCISES.includes(name)) {
+      ALL_EXERCISES.push(name);
+      ALL_EXERCISES.sort();
+    }
+    
+    try {
+      const custom = JSON.parse(localStorage.getItem('custom_exercises') || '[]');
+      custom.push({ name, muscleGroup: group });
+      localStorage.setItem('custom_exercises', JSON.stringify(custom));
+    } catch (e) {
+      console.error('Failed to save custom exercise', e);
+    }
+  }
+};
+
+const loadCustomExercises = () => {
+  try {
+    const custom = JSON.parse(localStorage.getItem('custom_exercises') || '[]');
+    let added = false;
+    custom.forEach((ex: { name: string, muscleGroup: MuscleGroup }) => {
+      if (EXERCISE_DATABASE[ex.muscleGroup] && !EXERCISE_DATABASE[ex.muscleGroup].includes(ex.name)) {
+        EXERCISE_DATABASE[ex.muscleGroup].push(ex.name);
+        if (!ALL_EXERCISES.includes(ex.name)) {
+          ALL_EXERCISES.push(ex.name);
+        }
+        added = true;
+      }
+    });
+    
+    if (added) {
+      Object.keys(EXERCISE_DATABASE).forEach(k => EXERCISE_DATABASE[k as MuscleGroup].sort());
+      ALL_EXERCISES.sort();
+    }
+  } catch (e) {
+    console.error('Failed to load custom exercises', e);
+  }
+};
+
+loadCustomExercises();

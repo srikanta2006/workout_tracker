@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useWorkoutState } from '../hooks/useWorkoutState';
 import { WorkoutTimer } from '../components/WorkoutTimer';
-import { EXERCISE_DATABASE, ALL_EXERCISES } from '../data/exercises';
+import { EXERCISE_DATABASE, ALL_EXERCISES, addCustomExercise } from '../data/exercises';
 import type { MuscleGroup, WorkoutSession, Exercise, Routine, WorkoutSet } from '../types';
 import { Plus, Trash2, Dumbbell, Save, ClipboardList, Trophy, History as HistoryIcon, Star, ChevronUp, ChevronDown, Flame, Zap } from 'lucide-react';
 import { calculateWarmupSets, warmupModel } from '../lib/warmupCalc';
@@ -86,6 +86,8 @@ export default function ActiveWorkout() {
     if (isTemplateMode || existingWorkout) return 7; // Skip readiness check if templating or editing past workout
     return null; // Force modal for new live sessions
   });
+
+  const [newExercisePrompt, setNewExercisePrompt] = useState<{id: string, name: string} | null>(null);
 
   // Sync exercises if routine data loads later (async Supabase fetch)
   useEffect(() => {
@@ -543,6 +545,12 @@ export default function ActiveWorkout() {
                   placeholder="Search or type exercise..."
                   value={exercise.name}
                   onChange={(e) => handleUpdateExerciseName(exercise.id, e.target.value)}
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (isTemplateMode && val && !ALL_EXERCISES.includes(val)) {
+                      setNewExercisePrompt({ id: exercise.id, name: val });
+                    }
+                  }}
                   className="w-full bg-transparent text-lg font-bold text-[var(--color-text-main)] outline-none focus:border-b-2 focus:border-[var(--color-brand-500)] transition-colors placeholder:font-normal placeholder:opacity-50"
                   style={{ marginBottom: '-2px' }}
                 />
@@ -818,6 +826,38 @@ export default function ActiveWorkout() {
               ))}
             </div>
             <button onClick={() => setReadinessScore(7)} className="mt-6 text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors">Skip (Default)</button>
+          </div>
+        </div>
+      )}
+      {/* NEW EXERCISE PROMPT MODAL */}
+      {newExercisePrompt && (
+        <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4 bg-[var(--color-bg-base)]/90 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-[32px] p-8 shadow-2xl text-center animate-scale-spring">
+            <h2 className="text-xl font-black text-[var(--color-text-main)] mb-2">New Exercise Detected</h2>
+            <p className="text-[var(--color-text-muted)] text-sm mb-6">"{newExercisePrompt.name}" is not in the database. Select a primary muscle group to add it.</p>
+            
+            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2 mb-6 text-left">
+              {(['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'] as MuscleGroup[]).map(group => (
+                <button
+                  key={group}
+                  onClick={() => {
+                    addCustomExercise(newExercisePrompt.name, group);
+                    setNewExercisePrompt(null);
+                  }}
+                  className="w-full py-3 px-4 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-xl font-bold text-[var(--color-text-main)] hover:bg-[var(--color-brand-500)] hover:text-white hover:border-[var(--color-brand-500)] transition-colors active:scale-[0.98] flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[var(--color-brand-500)]"></span>
+                  {group}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setNewExercisePrompt(null)}
+              className="w-full py-4 text-[var(--color-text-muted)] font-bold text-sm hover:text-[var(--color-text-main)] transition-colors"
+            >
+              Cancel / Don't Add
+            </button>
           </div>
         </div>
       )}
