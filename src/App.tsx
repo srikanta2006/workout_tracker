@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Layout } from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
 import { WorkoutProvider } from './context/WorkoutContext';
+import { DietProvider } from './context/DietContext';
 import { PrivateRoute } from './components/PrivateRoute';
 import { AppModeProvider } from './context/AppModeContext';
 
@@ -21,6 +22,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <AppModeProvider>
+          <DietProvider>
             <WorkoutProvider>
               <div className="animate-fade-in-up h-full w-full">
                 <Suspense fallback={
@@ -50,6 +52,7 @@ function App() {
                 </Suspense>
               </div>
             </WorkoutProvider>
+          </DietProvider>
         </AppModeProvider>
       </BrowserRouter>
     </AuthProvider>
