@@ -53,15 +53,25 @@ export default function Login() {
     if (tab === 'signup' && password !== confirmPassword) return setError('Passwords do not match.');
     if (password.length < 6) return setError('Password must be at least 6 characters.');
 
+    const normalizedEmail = email.trim().toLowerCase();
     setLoading(true);
     try {
       if (tab === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email: normalizedEmail, password });
         if (error) throw error;
-        setSuccess('Account created! Check your email to confirm, then sign in.');
+
+        if (data.user?.identities?.length === 0) {
+          setSuccess('If this email is registered, sign in or reset your password. For a new account, check your email for a confirmation link.');
+          setTab('signin');
+          return;
+        }
+
+        if (data.session) return;
+
+        setSuccess('Account created. Check your email for a confirmation link, then sign in.');
         setTab('signin');
       }
     } catch (err: any) {
@@ -76,7 +86,7 @@ export default function Login() {
     setError(''); setSuccess('');
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/settings?reset=true`, 
       });
       if (error) throw error;

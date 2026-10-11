@@ -83,17 +83,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    let profileFetchTimer: number | undefined;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user);
+        window.clearTimeout(profileFetchTimer);
+        profileFetchTimer = window.setTimeout(() => {
+          void fetchProfile(session.user);
+        }, 0);
       } else {
+        window.clearTimeout(profileFetchTimer);
         setProfile(null);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(profileFetchTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
