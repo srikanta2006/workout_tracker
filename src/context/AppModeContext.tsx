@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { createContext, useContext, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 
 export type AppMode = 'work' | 'eat';
 
@@ -17,7 +16,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   const isWorkMode = true;
   const isEatMode = false;
 
-  const setMode = useCallback((newMode: AppMode) => {
+  const setMode = useCallback((_newMode: AppMode) => {
     // Disabled for launch
   }, []);
 

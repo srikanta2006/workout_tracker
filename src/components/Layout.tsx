@@ -2,11 +2,9 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BarChart2, Settings as SettingsIcon, Dumbbell, Calendar, Play, Trophy } from 'lucide-react';
 import clsx from 'clsx';
 import { AchievementUnlockPopup } from './AchievementUnlockPopup';
-import { useAppMode } from '../context/AppModeContext';
 
 export function Layout() {
   const location = useLocation();
-  const { isWorkMode } = useAppMode();
 
   const WORK_NAV_ITEMS = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },

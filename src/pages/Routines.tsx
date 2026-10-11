@@ -3,7 +3,7 @@ import { useWorkoutState } from '../hooks/useWorkoutState';
 import { Dumbbell, Plus, Calendar, Trash2, CheckCircle2, Copy, ChevronRight, X, Edit2, Compass, Download, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Program, Routine, MuscleGroup } from '../types';
-import { DEFAULT_ROUTINES, type DefaultDayTemplate, type DefaultRoutine } from '../data/defaultRoutines';
+import { DEFAULT_ROUTINES, type DefaultRoutine } from '../data/defaultRoutines';
 import clsx from 'clsx';
 
 export default function Routines() {
